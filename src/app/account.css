@@ -1,0 +1,24 @@
+.settings-page { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+.settings-card { display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); }
+.settings-card.danger { border-color: rgba(244, 63, 94, 0.4); background: linear-gradient(150deg, var(--surface), rgba(244, 63, 94, 0.07)); }
+.settings-head { display: flex; align-items: flex-start; gap: 14px; }
+.settings-head > svg { color: var(--cyan); flex-shrink: 0; margin-top: 3px; }
+.settings-card.danger .settings-head > svg { color: #fb7185; }
+.settings-head h2 { font-family: var(--font-display); font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.settings-head p { font-size: 13px; color: var(--muted); line-height: 1.7; }
+.settings-consequences { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.settings-consequences li { position: relative; padding-left: 18px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+.settings-consequences li::before { content: ""; position: absolute; left: 0; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: #fb7185; }
+.settings-card .field code { background: var(--surface2); padding: 2px 7px; border-radius: 6px; color: var(--amber); font-size: 12px; }
+.settings-foot { font-size: 12.5px; color: var(--faint); }
+.settings-foot a { color: var(--cyan); font-weight: 700; }
+
+.comment-tools { display: flex; flex-direction: column; gap: 2px; }
+.seo-sortlinks { display: flex; gap: 6px; flex-wrap: wrap; }
+.seo-pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 24px 0 8px; }
+.seo-pager .btn.disabled, .seo-pager .btn[aria-disabled="true"] { opacity: 0.4; pointer-events: none; }
+.mod-total { font-size: 12px; color: var(--faint); font-weight: 700; }
+.mod-stats.compact { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.mod-artist.closed { opacity: 0.55; }
+.mod-email { font-size: 11px; color: var(--faint); }
+.mod-loading { padding: 30px 20px; }

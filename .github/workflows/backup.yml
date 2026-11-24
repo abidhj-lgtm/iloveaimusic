@@ -1,0 +1,31 @@
+name: Backup and keep-alive
+
+on:
+  schedule:
+    - cron: "17 3 * * *"   # daily, 03:17 UTC
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health (also prevents the free-tier idle pause)
+        run: |
+          curl -fsS --max-time 45 "${{ secrets.SITE_URL }}/api/health" -o health.json
+          cat health.json
+          python3 -c "import json,sys; d=json.load(open('health.json')); sys.exit(0 if d.get('ok') else 1)"
+
+      - name: Download encrypted-at-rest snapshot
+        run: |
+          STAMP=$(date -u +%Y-%m-%d)
+          curl -fsS --max-time 120 \
+            -H "x-backup-token: ${{ secrets.BACKUP_TOKEN }}" \
+            "${{ secrets.SITE_URL }}/api/backup" \
+            -o "iloveaimusic-${STAMP}.json"
+          python3 -c "import json; d=json.load(open('iloveaimusic-${STAMP}.json')); print('counts:', d['counts'])"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-backup
+          path: iloveaimusic-*.json
+          retention-days: 90

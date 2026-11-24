@@ -1,0 +1,15 @@
+/* Slice 1 additions — comment reporting + trust CTA */
+.trust-report-cta {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  margin-top: 12px; padding: 14px 16px; border-radius: 14px;
+  background: rgba(244, 63, 94, 0.05); border: 1px solid rgba(244, 63, 94, 0.22);
+}
+.trust-report-cta p { font-size: 12.5px; color: var(--muted); max-width: 520px; }
+
+.comment-tools { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+.comment-report, .comment-del { opacity: 0; width: 26px; height: 26px; transition: opacity 0.15s, color 0.15s; }
+.comment:hover .comment-report, .comment:hover .comment-del,
+.comment-report:focus-visible, .comment-del:focus-visible { opacity: 1; }
+.comment-report:hover { color: var(--amber); background: rgba(251, 191, 36, 0.12); }
+.comment-del:hover { color: #fb7185; }
+@media (hover: none) { .comment-report, .comment-del { opacity: 0.75; } }
