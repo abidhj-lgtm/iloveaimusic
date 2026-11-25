@@ -56,7 +56,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return ok({ id: row.legacy_id ?? row.id });
     }
 
-    return fail("Unknown action.", 400, "action");
+    return fail(`Unknown action: ${action}`, 400, "action");
   } catch (err) {
     return serverError(err, "Action failed.");
   }

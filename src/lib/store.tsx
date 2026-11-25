@@ -133,11 +133,37 @@ async function uploadLocalBlob(kind: "audio" | "cover", key: string): Promise<{ 
   }
   const blob = await getMedia(key);
   if (!blob) return null;
-  const form = new FormData();
-  form.set("kind", kind);
-  form.set("file", new File([blob], key.replace(/[^a-zA-Z0-9._-]/g, "_"), { type: blob.type || (kind === "audio" ? "audio/mpeg" : "image/jpeg") }));
-  const res = await api("/api/uploads", { method: "POST", body: form });
-  return res.ok ? { path: res.path, mime: res.mime, bytes: res.bytes } : null;
+
+  // Small files (under 4 MB) can go through the existing API route
+  if (blob.size <= 4 * 1024 * 1024) {
+    const form = new FormData();
+    form.set("kind", kind);
+    form.set("file", new File([blob], key.replace(/[^a-zA-Z0-9._-]/g, "_"), { type: blob.type || (kind === "audio" ? "audio/mpeg" : "image/jpeg") }));
+    const res = await api("/api/uploads", { method: "POST", body: form });
+    return res.ok ? { path: res.path, mime: res.mime, bytes: res.bytes } : null;
+  }
+
+  // Large files: signed direct-to-storage upload
+  const fileName = key.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const signRes = await api("/api/uploads/sign", {
+    method: "POST",
+    body: JSON.stringify({ kind, size: blob.size, fileName })
+  });
+  if (!signRes.ok || !signRes.signedUrl) return null;
+
+  // PUT directly to Supabase Storage — never touches Vercel
+  try {
+    const putRes = await fetch(signRes.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": blob.type || (kind === "audio" ? "audio/mpeg" : "image/jpeg") },
+      body: blob
+    });
+    if (!putRes.ok) return null;
+  } catch {
+    return null;
+  }
+
+  return { path: signRes.objectPath, mime: blob.type || (kind === "audio" ? "audio/mpeg" : "image/jpeg"), bytes: blob.size };
 }
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {

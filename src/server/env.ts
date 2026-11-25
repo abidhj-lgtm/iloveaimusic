@@ -50,8 +50,8 @@ export const MAX_AUDIO_BYTES = 100 * 1024 * 1024;
 export const MAX_COVER_BYTES = 8 * 1024 * 1024;
 export const FEED_PAGE = 20;
 
-export const AUDIO_BUCKET = "audio-originals";
-export const COVER_BUCKET = "covers";
+export const AUDIO_BUCKET = process.env.AUDIO_BUCKET ?? "audio-originals";
+export const COVER_BUCKET = process.env.COVER_BUCKET ?? "covers";
 export const DEMO_EMAIL = "aria@gmail.com";
 
 /** Demo login is a development convenience. Off in production unless explicitly enabled. */
