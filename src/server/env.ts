@@ -46,9 +46,9 @@ export const VERIFY_TTL_MS = 24 * 3600_000;
 export const RESET_TTL_MS = 60 * 60_000;
 export const DEVBOX_TTL_MS = 7 * 24 * 3600_000;
 
-export const MAX_AUDIO_BYTES = 100 * 1024 * 1024;
-export const MAX_COVER_BYTES = 8 * 1024 * 1024;
-export const FEED_PAGE = 20;
+export const MAX_AUDIO_BYTES = Number(process.env.MAX_AUDIO_BYTES ?? 50 * 1024 * 1024);
+export const MAX_COVER_BYTES = Number(process.env.MAX_COVER_BYTES ?? 8 * 1024 * 1024);
+export const FEED_PAGE = Number(process.env.FEED_PAGE ?? 20);
 
 export const AUDIO_BUCKET = process.env.AUDIO_BUCKET ?? "audio-originals";
 export const COVER_BUCKET = process.env.COVER_BUCKET ?? "covers";
