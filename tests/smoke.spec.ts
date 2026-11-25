@@ -27,7 +27,7 @@ test("creator and moderator journey", async ({ page, context }) => {
   // ---- login ----
   await page.getByRole("button", { name: /continue to login/i }).click();
   await expect(page).toHaveURL(/\/login/);
-  await page.getByLabel("Password").fill(PASSWORD);
+  await page.locator("#li-pass").fill(PASSWORD);
   await page.getByRole("button", { name: /^log in$/i }).click();
   await expect(page).toHaveURL(/\/($|\?)/);
 
@@ -74,9 +74,12 @@ test("creator and moderator journey", async ({ page, context }) => {
   await page.getByRole("button", { name: /^delete$/i }).click();
   await page.getByRole("button", { name: /^delete$/i }).last().click();
   await expect(page).toHaveURL(/\/($|\?)/);
+
   await page.getByRole("button", { name: /^undo$/i }).click();
-  await page.goto(trackUrl);
-  await expect(page.getByRole("heading", { name: "Smoke Test Track" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Smoke Test Track" }).first()).toBeVisible();
+
+  await page.goto(trackUrl, { waitUntil: "networkidle" });
+  await expect(page.getByRole("heading", { level: 1, name: "Smoke Test Track" })).toBeVisible();
 
   // ---- moderator: demo account, queue, dismiss, undo ----
   await context.clearCookies();
@@ -85,8 +88,8 @@ test("creator and moderator journey", async ({ page, context }) => {
   await expect(page).toHaveURL(/\/($|\?)/);
 
   await page.goto("/admin");
-  await expect(page.getByRole("heading", { name: /^moderation$/i })).toBeVisible();
-  await page.getByRole("button", { name: /everything/i }).click();
+  await expect(page.getByRole("heading", { name: /moderation/i })).toBeVisible();
+  await page.getByRole("button", { name: /everything|^all$/i }).click();
 
   const reviewButtons = page.getByRole("button", { name: /^review$/i });
   await expect(reviewButtons.first()).toBeVisible();

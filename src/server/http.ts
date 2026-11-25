@@ -1,7 +1,8 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE, DEVBOX_COOKIE, DEVBOX_TTL_MS, MAIL_MODE } from "./env";
+import { SESSION_COOKIE, DEVBOX_COOKIE, DEVBOX_TTL_MS, MAIL_MODE, SITE_URL } from "./env";
 import { newRequestId, reportError, log } from "./observability";
+
 
 export function clientIp(req: NextRequest): string {
   const fwd = req.headers.get("x-forwarded-for");
@@ -39,8 +40,32 @@ export function serverError(err: unknown, fallback: string): NextResponse {
 
 export function sameOrigin(req: NextRequest): boolean {
   const origin = req.headers.get("origin");
+  // Non-browser callers (curl, cron, server-to-server) send no Origin.
   if (!origin) return true;
-  try { return new URL(origin).host === req.nextUrl.host; } catch { return false; }
+
+  let originHost: string;
+  try { originHost = new URL(origin).host; } catch { return false; }
+
+  // Treat localhost / 127.0.0.1 / ::1 as the same loopback host, keeping the port.
+  const canon = (host: string) => {
+    const idx = host.lastIndexOf(":");
+    const name = (idx > -1 ? host.slice(0, idx) : host).toLowerCase().replace(/^\[|\]$/g, "");
+    const port = idx > -1 ? host.slice(idx) : "";
+    const loopback = name === "localhost" || name === "127.0.0.1" || name === "::1";
+    return `${loopback ? "loopback" : name}${port}`;
+  };
+
+  const allowed = new Set<string>([
+    req.headers.get("host") ?? "",
+    req.nextUrl.host
+  ]);
+  try { allowed.add(new URL(SITE_URL).host); } catch { /* unset in dev */ }
+
+  const target = canon(originHost);
+  for (const host of allowed) {
+    if (host && canon(host) === target) return true;
+  }
+  return false;
 }
 
 export const readSessionToken = (req: NextRequest) => req.cookies.get(SESSION_COOKIE)?.value ?? null;
