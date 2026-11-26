@@ -464,7 +464,10 @@ export function createSupabaseRepo(): Repo {
     async createSignedUploadUrl(bucket, path) {
       const res = await fetch(`${root()}/storage/v1/object/upload/sign/${bucket}/${path}`, {
         method: "POST",
-        headers: headers()
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`
+        }
       });
       if (!res.ok) {
         const text = await res.text();
@@ -472,7 +475,10 @@ export function createSupabaseRepo(): Repo {
         return null;
       }
       const j = (await res.json()) as { url?: string; token?: string };
-      if (!j.url || !j.token) return null;
+      if (!j.url || !j.token) {
+        console.error("Supabase signed URL: missing url or token in response", JSON.stringify(j));
+        return null;
+      }
       return { signedUrl: `${root()}/storage/v1${j.url}`, token: j.token };
     },
 
