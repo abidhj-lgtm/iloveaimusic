@@ -198,7 +198,7 @@ async function uploadLocalBlob(
         reject(new Error("Upload was cancelled"));
       });
 
-      xhr.open("POST", signRes.signedUrl);
+      xhr.open("PUT", signRes.signedUrl);
       xhr.setRequestHeader("Content-Type", blob.type || "application/octet-stream");
       xhr.setRequestHeader("Authorization", `Bearer ${signRes.apiKey}`);
       xhr.setRequestHeader("apikey", signRes.apiKey);
