@@ -200,6 +200,8 @@ async function uploadLocalBlob(
 
       xhr.open("POST", signRes.signedUrl);
       xhr.setRequestHeader("Content-Type", blob.type || "application/octet-stream");
+      xhr.setRequestHeader("Authorization", `Bearer ${signRes.apiKey}`);
+      xhr.setRequestHeader("apikey", signRes.apiKey);
       xhr.send(blob);
     });
   } catch (err) {

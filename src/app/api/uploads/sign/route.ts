@@ -3,6 +3,7 @@ import { getRepo } from "@/server/store";
 import { resolveSession } from "@/server/session";
 import { fail, ok, readBody, readSessionToken, sameOrigin, clientIp } from "@/server/http";
 import { rateLimit } from "@/server/ratelimit";
+import { SUPABASE_KEY } from "@/server/env";
 import { z } from "zod";
 
 const signSchema = z.object({
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest) {
     path: `${bucket}/${objectPath}`,
     bucket,
     objectPath,
-    expiresIn: 3600 // 1 hour
+    expiresIn: 3600, // 1 hour
+    apiKey: SUPABASE_KEY
   });
 }
