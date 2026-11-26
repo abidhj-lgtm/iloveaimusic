@@ -51,6 +51,7 @@ function CreateInner() {
   const [thumbPreview, setThumbPreview] = useState<string | null>(null);
   const [keptThumb, setKeptThumb] = useState<string | null>(null);
   const [thumbMode, setThumbMode] = useState<"generate" | "upload">("generate");
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [dragAudio, setDragAudio] = useState(false);
   const [dragThumb, setDragThumb] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -60,6 +61,8 @@ function CreateInner() {
   const audioInput = useRef<HTMLInputElement>(null);
   const thumbInput = useRef<HTMLInputElement>(null);
   const restoredRef = useRef(false);
+
+  // File size validation is handled in acceptAudio()
 
   const keptThumbUrl = useMediaUrl(keptThumb);
   const ytId = useMemo(() => parseYouTubeId(form.youtubeUrl), [form.youtubeUrl]);
@@ -183,7 +186,12 @@ function CreateInner() {
       let thumbKey: string | undefined; let duration: number | undefined = audioDur || undefined;
 
       if (form.source === "upload") {
-        if (audioFile) { audioKey = `audio:${id}`; await putMedia(audioKey, audioFile); }
+        if (audioFile) {
+          audioKey = `audio:${id}`;
+          setUploadProgress(0);
+          await putMedia(audioKey, audioFile);
+          setUploadProgress(null);
+        }
         else if (sampleBlob) { audioKey = `audio:${id}`; preset = samplePreset; await putMedia(audioKey, sampleBlob); }
         else if (keptAudio) { audioKey = keptAudio.key; preset = keptAudio.preset; duration = keptAudio.duration ?? duration; }
         if (thumbMode === "upload") {
@@ -276,7 +284,15 @@ function CreateInner() {
                       onDrop={(e) => { e.preventDefault(); setDragAudio(false); const f = e.dataTransfer.files?.[0]; if (f) acceptAudio(f); }}
                       role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") audioInput.current?.click(); }}>
                       <Upload size={26} /><strong>Drop your track here</strong>
-                      <span>or click to browse · MP3, WAV, M4A, OGG · up to 100MB</span>
+                      <span>or click to browse · MP3, WAV, M4A, OGG · up to 50MB</span>
+                      {uploadProgress !== null && (
+                        <div className="upload-progress">
+                          <div className="progress-bar">
+                            <div className="progress-fill" style={{ width: `${uploadProgress}%` }} />
+                          </div>
+                          <span className="progress-text">{uploadProgress}% uploaded</span>
+                        </div>
+                      )}
                     </div>
                   )}
                   <input ref={audioInput} type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) acceptAudio(f); e.target.value = ""; }} />

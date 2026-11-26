@@ -461,6 +461,21 @@ export function createSupabaseRepo(): Repo {
       return j.signedURL ? `${root()}/storage/v1${j.signedURL}` : null;
     },
 
+    async createSignedUploadUrl(bucket, path) {
+      const res = await fetch(`${root()}/storage/v1/object/upload/sign/${bucket}/${path}`, {
+        method: "POST",
+        headers: headers()
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        console.error(`Supabase signed URL error (${res.status}): ${text}`);
+        return null;
+      }
+      const j = (await res.json()) as { url?: string; token?: string };
+      if (!j.url || !j.token) return null;
+      return { signedUrl: `${root()}/storage/v1${j.url}`, token: j.token };
+    },
+
     async audit(actorId, action, target, meta, ip) {
       await call("audit_logs", "POST", {}, { actor_id: actorId, action, target, meta, ip: ip.slice(0, 64) });
     }

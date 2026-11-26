@@ -126,44 +126,86 @@ function applyBundles(base: State, bundles: Bundle[], collections: { liked: stri
   return { ...base, tracks, comments, likes, saves, follows };
 }
 
-async function uploadLocalBlob(kind: "audio" | "cover", key: string): Promise<{ path: string; mime: string; bytes: number } | null> {
+async function uploadLocalBlob(
+  kind: "audio" | "cover",
+  key: string,
+  onProgress?: (percent: number) => void
+): Promise<{ path: string; mime: string; bytes: number } | null> {
   if (key.startsWith("/api/media/")) {
     const parts = decodeURIComponent(key.split("/").pop() ?? "");
     return parts ? { path: parts, mime: "", bytes: 0 } : null;
   }
+
   const blob = await getMedia(key);
   if (!blob) return null;
 
-  // Small files (under 4 MB) can go through the existing API route
   if (blob.size <= 4 * 1024 * 1024) {
     const form = new FormData();
     form.set("kind", kind);
-    form.set("file", new File([blob], key.replace(/[^a-zA-Z0-9._-]/g, "_"), { type: blob.type || (kind === "audio" ? "audio/mpeg" : "image/jpeg") }));
+    form.set("file", new File([blob], key.replace(/[^a-zA-Z0-9._-]/g, "_"), {
+      type: blob.type || (kind === "audio" ? "audio/mpeg" : "image/jpeg")
+    }));
     const res = await api("/api/uploads", { method: "POST", body: form });
     return res.ok ? { path: res.path, mime: res.mime, bytes: res.bytes } : null;
   }
 
-  // Large files: signed direct-to-storage upload
   const fileName = key.replace(/[^a-zA-Z0-9._-]/g, "_");
   const signRes = await api("/api/uploads/sign", {
     method: "POST",
-    body: JSON.stringify({ kind, size: blob.size, fileName })
+    body: JSON.stringify({
+      kind,
+      size: blob.size,
+      fileName,
+      mimeType: blob.type || (kind === "audio" ? "audio/mpeg" : "image/jpeg")
+    })
   });
-  if (!signRes.ok || !signRes.signedUrl) return null;
 
-  // PUT directly to Supabase Storage — never touches Vercel
-  try {
-    const putRes = await fetch(signRes.signedUrl, {
-      method: "PUT",
-      headers: { "Content-Type": blob.type || (kind === "audio" ? "audio/mpeg" : "image/jpeg") },
-      body: blob
-    });
-    if (!putRes.ok) return null;
-  } catch {
+  if (!signRes.ok || !signRes.signedUrl) {
+    console.error("Sign failed:", signRes);
     return null;
   }
 
-  return { path: signRes.objectPath, mime: blob.type || (kind === "audio" ? "audio/mpeg" : "image/jpeg"), bytes: blob.size };
+  try {
+    const xhr = new XMLHttpRequest();
+    
+    return await new Promise((resolve, reject) => {
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable && onProgress) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          onProgress(percent);
+        }
+      });
+
+      xhr.addEventListener("load", () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve({
+            path: signRes.objectPath,
+            mime: blob.type || (kind === "audio" ? "audio/mpeg" : "image/jpeg"),
+            bytes: blob.size
+          });
+        } else {
+          console.error("Upload failed:", xhr.status, xhr.responseText);
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      });
+
+      xhr.addEventListener("error", () => {
+        console.error("Upload network error");
+        reject(new Error("Network error during upload"));
+      });
+
+      xhr.addEventListener("abort", () => {
+        reject(new Error("Upload was cancelled"));
+      });
+
+      xhr.open("POST", signRes.signedUrl);
+      xhr.setRequestHeader("Content-Type", blob.type || "application/octet-stream");
+      xhr.send(blob);
+    });
+  } catch (err) {
+    console.error("Upload exception:", err);
+    return null;
+  }
 }
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
@@ -337,27 +379,42 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const rollback = (msg: string) => { push({ kind: "err", msg }); void refreshContent(); };
 
-  const publishToServer = async (localId: string, input: TrackInput, mode: "create" | "update") => {
-    setSyncing(true);
-    let audioPath: string | undefined;
-    let audioMime: string | undefined;
-    let audioBytes: number | undefined;
-    let coverPath: string | undefined;
+const publishToServer = async (localId: string, input: TrackInput, mode: "create" | "update") => {
+  setSyncing(true);
+  let audioPath: string | undefined;
+  let audioMime: string | undefined;
+  let audioBytes: number | undefined;
+  let coverPath: string | undefined;
 
-    if (input.source === "upload") {
-      if (input.audioKey && !input.preset) {
-        const up = await uploadLocalBlob("audio", input.audioKey);
-        if (!up) { setSyncing(false); rollback("Couldn't upload the audio file."); return; }
-        audioPath = up.path; audioMime = up.mime; audioBytes = up.bytes;
-      } else if (input.audioKey?.startsWith("/api/media/")) {
-        audioPath = decodeURIComponent(input.audioKey.split("/").pop() ?? "");
+  if (input.source === "upload") {
+    if (input.audioKey && !input.preset) {
+      const up = await uploadLocalBlob("audio", input.audioKey, (percent) => {
+        // Update UI with progress
+        console.log(`Upload progress: ${percent}%`);
+      });
+      if (!up) {
+        setSyncing(false);
+        rollback("Couldn't upload the audio file.");
+        return;
       }
-      if (input.thumbKey) {
-        const up = await uploadLocalBlob("cover", input.thumbKey);
-        coverPath = up?.path;
-      }
-      if (!input.preset && !audioPath) { setSyncing(false); rollback("No audio was attached."); return; }
+      audioPath = up.path;
+      audioMime = up.mime;
+      audioBytes = up.bytes;
+    } else if (input.audioKey?.startsWith("/api/media/")) {
+      audioPath = decodeURIComponent(input.audioKey.split("/").pop() ?? "");
     }
+    
+    if (input.thumbKey) {
+      const up = await uploadLocalBlob("cover", input.thumbKey);
+      coverPath = up?.path;
+    }
+    
+    if (!input.preset && !audioPath) {
+      setSyncing(false);
+      rollback("No audio was attached.");
+      return;
+    }
+  }
 
     const body = {
       title: input.title, source: input.source, youtubeId: input.youtubeId, live: input.live,

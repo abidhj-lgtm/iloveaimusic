@@ -202,6 +202,7 @@ export interface Repo {
   signedUrl(bucket: string, path: string, ttl: number): Promise<string | null>;
 
   audit(actorId: string | null, action: string, target: string, meta: Record<string, unknown>, ip: string): Promise<void>;
+  createSignedUploadUrl(bucket: string, path: string): Promise<{ signedUrl: string; token: string } | null>;
 }
 
 /* ---------- keyset cursor ---------- */
