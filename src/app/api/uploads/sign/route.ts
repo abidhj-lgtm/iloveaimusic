@@ -58,20 +58,18 @@ export async function POST(req: NextRequest) {
   const objectPath = `${viewer.id}/${timestamp}-${sanitized}`;
   const bucket = kind === "audio" ? "audio-originals" : "covers";
 
-  // Create the signed URL using Supabase Storage
-  const supabase = getRepo().supabase;
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .createSignedUploadUrl(objectPath);
+  // Create the signed URL using the repo's storage API
+  const repo = getRepo();
+  const result = await repo.createSignedUploadUrl(bucket, objectPath);
 
-  if (error || !data) {
-    console.error("Failed to create signed URL:", error);
+  if (!result) {
+    console.error("Failed to create signed URL");
     return fail("Could not create upload URL. Please try again.", 502, "storage");
   }
 
   return ok({
-    signedUrl: data.signedUrl,
-    token: data.token,
+    signedUrl: result.signedUrl,
+    token: result.token,
     path: `${bucket}/${objectPath}`,
     bucket,
     objectPath,
