@@ -95,7 +95,7 @@ export function websiteJsonLd() {
   return {
     "@context": "https://schema.org", "@type": "WebSite",
     "@id": `${SITE.url}/#website`,
-    name: SITE.name, alternateName: ["I Love AI", "iloveaimusic", "I Listen AI Music"],
+    name: SITE.name, alternateName: ["I Love AI", "iloveaimusic", "I Love AI Music"],
     url: SITE.url, description: SITE.description, inLanguage: "en",
     publisher: { "@id": `${SITE.url}/#organization` },
     potentialAction: {

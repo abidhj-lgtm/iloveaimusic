@@ -73,7 +73,7 @@ function ForgotInner() {
             <div className="inbox-head"><Inbox size={16} /><strong>Server dev inbox</strong><span className="inbox-badge">no SMTP key set</span></div>
             {resets.map((m) => (
               <div className="mail" key={m.id}>
-                <div className="mail-subject">Reset your I Listen AI Music password</div>
+                <div className="mail-subject">Reset your I Love AI Music password</div>
                 <p className="mail-body">Choose a new password within the hour. All other sessions will be signed out.</p>
                 <Link className="btn btn-brand wfull" href={`/reset?token=${encodeURIComponent(m.token)}`}>
                   Choose a new password<ArrowRight size={15} />

@@ -117,9 +117,9 @@ function VerifyInner() {
               <div className="mail" key={m.id}>
                 <div className="mail-head">
                   <span className="mail-from-mark"><Mail size={15} /></span>
-                  <div className="mail-from"><strong>I Listen AI Music</strong><em>to {m.to} · {timeAgo(m.sentAt)}</em></div>
+                  <div className="mail-from"><strong>I Love AI Music</strong><em>to {m.to} · {timeAgo(m.sentAt)}</em></div>
                 </div>
-                <div className="mail-subject">Verify your email for I Listen AI Music</div>
+                <div className="mail-subject">Verify your email for I Love AI Music</div>
                 <p className="mail-body">Confirm this address to activate your login. The link is single-use and expires in 24 hours.</p>
                 <button className="btn btn-brand wfull" onClick={() => doVerify(m.token)} disabled={busy}>
                   {busy ? <Spinner size={16} /> : <ShieldCheck size={16} />}<span>{busy ? "Verifying…" : "Verify my email"}</span>

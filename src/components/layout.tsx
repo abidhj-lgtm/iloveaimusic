@@ -91,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
         <div className="side-foot">
           <span>{formatCount(state.tracks.length)} tracks · {formatCount(state.users.length)} artists</span>
-          <span>I Listen AI Music © 2026</span>
+          <span>I Love AI Music © 2026</span>
         </div>
       </aside>
 

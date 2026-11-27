@@ -103,8 +103,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       if ("mediaSession" in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
           title: t.title,
-          artist: stateRef.current.users.find((u) => u.id === t.userId)?.name ?? "I Listen AI Music",
-          album: "I Listen AI Music"
+          artist: stateRef.current.users.find((u) => u.id === t.userId)?.name ?? "I Love AI Music",
+          album: "I Love AI Music"
         });
       }
     } catch { /* unsupported */ }

@@ -79,7 +79,7 @@ Call log:
     - img "Smoke Tester"
     - strong: Smoke Tester
     - emphasis: "@smoketester"
-  - text: 7 tracks · 6 artists I Listen AI Music © 2026
+  - text: 7 tracks · 6 artists I Love AI Music © 2026
 - main:
   - img
   - heading "This track faded out" [level=3]

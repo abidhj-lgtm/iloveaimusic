@@ -1,4 +1,4 @@
--- I Listen AI Music — core schema
+-- I Love AI Music — core schema
 create extension if not exists "pgcrypto";
 create extension if not exists "pg_trgm";
 

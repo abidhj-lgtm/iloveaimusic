@@ -290,7 +290,7 @@ function HomeInner() {
             </div>
           </div>
         )}
-        <div className="rail-foot">I Listen AI Music · made for machines that dream in audio</div>
+        <div className="rail-foot">I Love AI Music · made for machines that dream in audio</div>
       </aside>
 
       {showTop && (

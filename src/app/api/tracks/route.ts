@@ -5,6 +5,7 @@ import { resolveSession } from "@/server/session";
 import { rateLimit } from "@/server/ratelimit";
 import { clientIp, fail, json, ok, readBody, readSessionToken, sameOrigin, serverError } from "@/server/http";
 import { getRepo } from "@/server/store";
+import { searchPlaylists } from "@/server/store/features";
 
 export const dynamic = "force-dynamic";
 
@@ -21,13 +22,13 @@ export async function GET(req: NextRequest) {
 
     // When searching, also return matching public playlists
     let playlists: any[] = [];
-    if (parsed.data.q.trim()) {
+    if (parsed.data.q && parsed.data.q.trim()) {
       try {
-        const repo = getRepo();
         const safe = parsed.data.q.replace(/[(),"]/g, "").replace(/\s+/g, " ").trim();
         if (safe) {
-          const rows = await (repo as any).searchPlaylists?.(safe, 10) ?? [];
+          const rows = await searchPlaylists(safe, 10);
           if (rows.length) {
+            const repo = getRepo();
             const userIds = [...new Set(rows.map((p: any) => p.user_id))];
             const users = await repo.profilesByIds(userIds);
             playlists = rows.map((p: any) => ({
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
               coverSeed: p.cover_seed,
               coverPalette: p.cover_palette,
               trackCount: p.track_count,
-              artist: users.find((u) => u.id === p.user_id) ?? null,
+              artist: users.find((u: any) => u.id === p.user_id) ?? null,
               href: `/playlist/${p.id}`
             }));
           }

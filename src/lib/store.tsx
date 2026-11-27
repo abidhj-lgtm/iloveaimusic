@@ -553,9 +553,17 @@ const publishToServer = async (localId: string, input: TrackInput, mode: "create
         ...st,
         saves: was ? st.saves.filter((l) => !(l.userId === u.id && l.trackId === trackId)) : [...st.saves, { userId: u.id, trackId, createdAt: Date.now() }]
       }));
+      
+      // Fire-and-forget to server for standard save
       void api(`/api/tracks/${encodeURIComponent(trackId)}/save`, { method: "POST", body: JSON.stringify({ on: !was }) }).then((res) => {
         if (!res.ok) rollback(res.error ?? "Couldn't save that.");
       });
+
+      // Also update the "Saved Tracks" playlist
+      void api("/api/playlists/saved/tracks", {
+        method: "POST",
+        body: JSON.stringify({ trackId, action: was ? "remove" : "add" })
+      }).catch(() => undefined);
     },
 
     toggleFollow(targetId) {

@@ -6,10 +6,10 @@ import { CATALOG_TRACKS, CATALOG_ARTISTS } from "@/lib/catalog";
 
 export const metadata: Metadata = pageMetadata({
   title: "About — why the prompt belongs next to the song",
-  description: "I Listen AI Music publishes AI-generated tracks together with their style prompts, session stories and lyrics. Read the editorial standards, rights policy, takedown process and contact details.",
+  description: "I Love AI Music publishes AI-generated tracks together with their style prompts, session stories and lyrics. Read the editorial standards, rights policy, takedown process and contact details.",
   path: "/about",
-  image: ogImageUrl({ title: "About I Listen AI Music", subtitle: "The track · the story · the prompt · the lyrics", palette: 0, kind: "about" }),
-  keywords: ["about I Listen AI Music", "AI music platform", "AI music editorial standards", "AI music rights policy", "AI music takedown"]
+  image: ogImageUrl({ title: "About I Love AI Music", subtitle: "The track · the story · the prompt · the lyrics", palette: 0, kind: "about" }),
+  keywords: ["about I Love AI Music", "AI music platform", "AI music editorial standards", "AI music rights policy", "AI music takedown"]
 });
 
 const PILLARS = [

@@ -5,8 +5,8 @@ import { pageMetadata, ogImageUrl, faqJsonLd, breadcrumbJsonLd, jsonLdScript, SI
 
 const FAQ: { q: string; a: string }[] = [
   {
-    q: "What is I Listen AI Music?",
-    a: "I Listen AI Music is a community feed for AI-generated music. Creators post a track — either uploaded from their computer or embedded from YouTube — and publish four things alongside it: the title, the background story of the session, the exact style prompt fed to the model, and the lyrics. Everything appears in a chronological, newest-first feed with a persistent player that keeps playing while you browse."
+    q: "What is I Love AI Music?",
+    a: "I Love AI Music is a community feed for AI-generated music. Creators post a track — either uploaded from their computer or embedded from YouTube — and publish four things alongside it: the title, the background story of the session, the exact style prompt fed to the model, and the lyrics. Everything appears in a chronological, newest-first feed with a persistent player that keeps playing while you browse."
   },
   {
     q: "Can I upload music I made with Suno, Udio or another AI tool?",

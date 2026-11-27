@@ -5,7 +5,7 @@ import { pageMetadata } from "@/lib/seo";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Moderation console", description: "Staff-only moderation queue for I Listen AI Music.",
+  title: "Moderation console", description: "Staff-only moderation queue for I Love AI Music.",
   path: "/admin", noindex: true
 });
 
