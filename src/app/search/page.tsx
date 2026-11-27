@@ -36,7 +36,7 @@ function clearHistory() {
   localStorage.removeItem(HISTORY_KEY);
 }
 
-export default function SearchPage() {
+function SearchInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -227,5 +227,13 @@ export default function SearchPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="empty"><div className="boot-eq on"><i /><i /><i /><i /><i /></div></div>}>
+      <SearchInner />
+    </Suspense>
   );
 }

@@ -223,6 +223,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const playThrottle = useRef(new Map<string, number>());
   const [notificationCount, setNotificationCount] = useState(0);
 
+  const refreshNotifications = useCallback(async () => {
+    const currentUser = state?.users.find((u) => u.id === state.sessionUserId) ?? null;
+    if (!currentUser || meta.mode !== "supabase") { setNotificationCount(0); return; }
+    try {
+      const res = await api("/api/notifications/unread-count");
+      if (res.ok) setNotificationCount(res.unread ?? 0);
+    } catch { /* ignore */ }
+  }, [state, meta.mode]);
+
+  useEffect(() => {
+    void refreshNotifications();
+    const iv = setInterval(refreshNotifications, 30000);
+    return () => clearInterval(iv);
+  }, [refreshNotifications]);
+
   const push = useCallback((t: Omit<ToastItem, "id">) => {
     const id = uid();
     setToasts((prev) => [...prev.slice(-2), { ...t, id }]);
@@ -381,20 +396,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const s = state;
   const currentUser = s.users.find((u) => u.id === s.sessionUserId) ?? null;
-
-  const refreshNotifications = useCallback(async () => {
-    if (!currentUser || meta.mode !== "supabase") { setNotificationCount(0); return; }
-    try {
-      const res = await api("/api/notifications/unread-count");
-      if (res.ok) setNotificationCount(res.unread ?? 0);
-    } catch { /* ignore */ }
-  }, [currentUser, meta.mode]);
-
-  useEffect(() => {
-    void refreshNotifications();
-    const iv = setInterval(refreshNotifications, 30000);
-    return () => clearInterval(iv);
-  }, [refreshNotifications]);
 
   const rollback = (msg: string) => { push({ kind: "err", msg }); void refreshContent(); };
 
