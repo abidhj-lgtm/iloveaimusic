@@ -11,6 +11,7 @@ import { useStore, useToast } from "@/lib/store";
 import { TrackCard, SkeletonCard, EmptyState } from "@/components/track-card";
 import { Avatar, CopyButton } from "@/components/ui";
 import { formatCount, timeAgo } from "@/lib/utils";
+import { TrendingSection } from "@/components/trending-section";
 
 type View = "all" | "upload" | "youtube" | "saved" | "liked" | "following";
 type Sort = "new" | "old" | "liked" | "played";
@@ -33,6 +34,11 @@ function HomeInner() {
   const [limit, setLimit] = useState(PAGE);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showTop, setShowTop] = useState(false);
+  const [genre, setGenre] = useState("");
+  const [mood, setMood] = useState("");
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [apiResults, setApiResults] = useState<any[]>([]);
+  const [isApiSearching, setIsApiSearching] = useState(false);
   const sentinel = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const highlightId = params.get("new");
@@ -59,7 +65,43 @@ function HomeInner() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    fetch("/api/tags", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.ok) setAvailableTags(data.tags ?? []);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (q.trim() || genre || mood) {
+      setIsApiSearching(true);
+      const params = new URLSearchParams();
+      if (q.trim()) params.set("q", q.trim());
+      if (genre) params.set("genre", genre);
+      if (mood) params.set("mood", mood);
+      params.set("limit", "50");
+      
+      fetch(`/api/tracks?${params.toString()}`, { cache: "no-store" })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.ok) setApiResults(data.items ?? []);
+        })
+        .catch(() => setApiResults([]))
+        .finally(() => setIsApiSearching(false));
+    } else {
+      setApiResults([]);
+      setIsApiSearching(false);
+    }
+  }, [q, genre, mood]);
+
   const filtered = useMemo(() => {
+    // If we are actively searching via API, use those results
+    if (q.trim() || genre || mood) {
+      return apiResults.map((item: any) => item.track);
+    }
+
     let list = [...state.tracks];
     if (view === "upload") list = list.filter((t) => t.source === "upload");
     if (view === "youtube") list = list.filter((t) => t.source === "youtube");
@@ -69,22 +111,12 @@ function HomeInner() {
       const ids = state.follows.filter((f) => f.followerId === currentUser.id).map((f) => f.targetId);
       list = list.filter((t) => ids.includes(t.userId));
     }
-    if (q.trim()) {
-      const needle = q.trim().toLowerCase();
-      list = list.filter((t) => {
-        const u = userById(t.userId);
-        return t.title.toLowerCase().includes(needle)
-          || t.stylePrompt.toLowerCase().includes(needle)
-          || t.background.toLowerCase().includes(needle)
-          || (u && (u.name.toLowerCase().includes(needle) || u.handle.toLowerCase().includes(needle)));
-      });
-    }
     if (sort === "new") list.sort((a, b) => b.createdAt - a.createdAt);
     if (sort === "old") list.sort((a, b) => a.createdAt - b.createdAt);
     if (sort === "liked") list.sort((a, b) => likeCount(b) - likeCount(a));
     if (sort === "played") list.sort((a, b) => b.plays - a.plays);
     return list;
-  }, [state.tracks, state.saves, state.likes, state.follows, view, q, sort, currentUser, likeCount, userById]);
+  }, [apiResults, state.tracks, state.saves, state.likes, state.follows, view, q, genre, mood, sort, currentUser, likeCount]);
 
   const visible = filtered.slice(0, limit);
   const queueIds = filtered.map((t) => t.id);
@@ -132,6 +164,7 @@ function HomeInner() {
   return (
     <div className="home">
       <div className="feed-col">
+        <TrendingSection />
         <div className="stories" aria-label="Artists">
           {currentUser && (
             <Link href="/create" className="story">
@@ -156,6 +189,20 @@ function HomeInner() {
             />
             {q && <button className="icon-btn" onClick={() => setQ("")} aria-label="Clear search"><X size={15} /></button>}
           </div>
+          <div className="search-filters-row">
+            <select value={genre} onChange={(e) => setGenre(e.target.value)} className="select filter-select" aria-label="Filter by genre">
+              <option value="">All genres</option>
+              {availableTags.filter(t => !["chill", "energetic", "melancholic", "upbeat"].includes(t)).map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+            <select value={mood} onChange={(e) => setMood(e.target.value)} className="select filter-select" aria-label="Filter by mood">
+              <option value="">All moods</option>
+              {availableTags.filter(t => ["chill", "energetic", "melancholic", "upbeat"].includes(t)).map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
           <div className="toolbar-row">
             <div className="chips" role="tablist" aria-label="Filter feed">
               {chips.map((c) => (
@@ -172,10 +219,13 @@ function HomeInner() {
               </select>
             </label>
           </div>
-          {(q || view !== "all") && (
+          {(q || view !== "all" || genre || mood) && (
             <div className="result-line">
-              <span>{filtered.length} track{filtered.length === 1 ? "" : "s"}{q ? ` for “${q}”` : ""}</span>
-              <button className="more-btn" onClick={() => { setQ(""); setView("all"); }}>Clear</button>
+              <span>
+                {isApiSearching ? "Searching…" : `${filtered.length} track${filtered.length === 1 ? "" : "s"} found`}
+                {q ? ` for “${q}”` : ""}
+              </span>
+              <button className="more-btn" onClick={() => { setQ(""); setView("all"); setGenre(""); setMood(""); }}>Clear</button>
             </div>
           )}
         </div>

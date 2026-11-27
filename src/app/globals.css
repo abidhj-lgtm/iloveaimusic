@@ -1,4 +1,4 @@
-/* ============ I LISTEN AI MUSIC — night-stage design system ============ */
+/* ============ I Love AI Music — night-stage design system ============ */
 :root {
   --bg0: #0a0712;
   --bg1: #120d1f;
@@ -1215,4 +1215,72 @@ textarea::-webkit-scrollbar, .comments-list::-webkit-scrollbar, .stories::-webki
 .pl-hero-actions .btn.done {
   color: var(--lime);
   border-color: rgba(198, 255, 61, 0.3);
+}
+/* ── search page ─────────────────────────────────────────────── */
+.search-page { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+.search-header { margin-bottom: 32px; }
+.search-title { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 700; margin-bottom: 20px; color: #f4efff; }
+.search-form { display: flex; flex-direction: column; gap: 16px; }
+.search-input-wrap { position: relative; }
+.search-input-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--faint); pointer-events: none; }
+.search-input { width: 100%; padding: 14px 48px 14px 48px; font-size: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; color: #f4efff; transition: border-color .2s; }
+.search-input:focus { outline: none; border-color: var(--magenta); }
+.search-clear { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--faint); cursor: pointer; padding: 4px; display: grid; place-items: center; border-radius: 6px; transition: background .15s; }
+.search-clear:hover { background: var(--surface2); color: #f4efff; }
+.search-filters { display: flex; gap: 12px; flex-wrap: wrap; }
+.search-select { padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: #f4efff; font-size: 14px; cursor: pointer; min-width: 140px; }
+.search-select:focus { outline: none; border-color: var(--magenta); }
+
+.search-history { margin-bottom: 24px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.search-history-toggle { display: flex; align-items: center; gap: 8px; background: none; border: none; color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; padding: 0; transition: color .15s; }
+.search-history-toggle:hover { color: #f4efff; }
+.search-history-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.search-history-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--surface2); border-radius: 8px; }
+.search-history-link { flex: 1; color: #f4efff; text-decoration: none; font-size: 14px; transition: color .15s; }
+.search-history-link:hover { color: var(--magenta); }
+.search-history-remove { background: none; border: none; color: var(--faint); cursor: pointer; padding: 4px; display: grid; place-items: center; border-radius: 6px; transition: background .15s, color .15s; }
+.search-history-remove:hover { background: rgba(255,255,255,.05); color: #f4efff; }
+.search-history-clear { margin-top: 8px; background: none; border: none; color: var(--faint); font-size: 13px; cursor: pointer; text-align: left; padding: 4px 0; transition: color .15s; }
+.search-history-clear:hover { color: var(--magenta); }
+
+.search-results-count { margin-bottom: 16px; font-size: 14px; color: var(--muted); }
+
+/* ── genre/mood pages ────────────────────────────────────────── */
+.genre-page, .mood-page { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+.genre-header, .mood-header { margin-bottom: 32px; }
+.genre-title, .mood-title { font-size: 32px; font-weight: 700; margin-bottom: 8px; color: #f4efff; text-transform: capitalize; }
+.genre-subtitle, .mood-subtitle { font-size: 15px; color: var(--muted); }
+
+@media (max-width: 640px) {
+  .search-filters { flex-direction: column; }
+  .search-select { width: 100%; }
+}
+/* ── enhanced search filters ─────────────────────────────────── */
+.search-filters-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.filter-select {
+  flex: 1;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: #f4efff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color .2s;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--magenta);
+}
+
+@media (max-width: 640px) {
+  .search-filters-row {
+    flex-direction: column;
+  }
 }

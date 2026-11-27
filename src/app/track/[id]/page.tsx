@@ -13,6 +13,7 @@ import { getTrackBundle } from "@/server/content-service";
 import { getRights } from "@/server/trust/service";
 import { getRepo } from "@/server/store";
 import type { Track, User } from "@/lib/types";
+import { SimilarTracks } from "@/components/similar-tracks";
 
 
 export const dynamicParams = true;
@@ -181,7 +182,8 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
           <div className="instru"><Disc3 size={34} className="slow-spin" /><div><strong>Instrumental</strong><p>No lyrics — let the frequencies do the talking.</p></div></div>
         ) : <LyricBlocks lyrics={track.lyrics} />}
       </section>
-
+      
+      <SimilarTracks trackId={track.id} />
       <TrackComments trackId={track.id} />
 
       {related.length > 0 && (

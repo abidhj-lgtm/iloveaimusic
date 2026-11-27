@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Plus, Search, Bookmark, User as UserIcon, LogOut, Volume2, VolumeX, Music2, Headphones, Sparkles, ListMusic, BarChart3 } from "lucide-react";
+import { Home, Plus, Search, Bookmark, User as UserIcon, LogOut, Volume2, VolumeX, Music2, Headphones, Sparkles, ListMusic, BarChart3, Compass } from "lucide-react";
 import { useStore, useToast } from "@/lib/store";
 import { Logo, Avatar, Menu } from "./ui";
 import { NotificationBell } from "./notifications";
@@ -32,6 +32,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <nav className="nav-links" aria-label="Primary">
             <Link href="/" className={`nav-link${isHome ? " active" : ""}`}><Home size={16} />Feed</Link>
             <Link href="/create" className={`nav-link${pathname === "/create" ? " active" : ""}`}><Plus size={16} />Post music</Link>
+            <Link href="/search" className={`nav-link${pathname === "/search" ? " active" : ""}`}><Search size={16} />Search</Link>
           </nav>
           <div className="header-actions">
             <button

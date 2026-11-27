@@ -391,3 +391,16 @@ export async function cleanupOldNotifications(days: number): Promise<number> {
   const match = range.match(/\/(\d+)$/);
   return match ? Number(match[1]) : 0;
 }
+/* ---------------- tags discovery ---------------- */
+
+export async function getDistinctTags(): Promise<string[]> {
+  const res = await fetch(
+    `${rest()}/track_tags?select=tag&order=tag.asc&limit=1000`,
+    { headers: H(), cache: "no-store" }
+  );
+  if (!res.ok) return [];
+  const text = await res.text();
+  if (!text) return [];
+  const rows = JSON.parse(text) as { tag: string }[];
+  return [...new Set(rows.map((r) => r.tag))].sort();
+}

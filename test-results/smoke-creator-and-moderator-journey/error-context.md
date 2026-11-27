@@ -12,99 +12,108 @@
 # Error details
 
 ```
-Error: expect(locator).toBeVisible() failed
+Test timeout of 90000ms exceeded.
+```
 
-Locator: getByRole('heading', { name: 'Smoke Test Track', level: 1 })
-Expected: visible
-Timeout: 15000ms
-Error: element(s) not found
-
+```
+Error: locator.fill: Test timeout of 90000ms exceeded.
 Call log:
-  - Expect "toBeVisible" getByRole('heading', { name: 'Smoke Test Track', level: 1 }) with timeout 15000ms
-  - waiting for getByRole('heading', { name: 'Smoke Test Track', level: 1 })
+  - waiting for getByLabel('Artist name')
+    - waiting for "http://localhost:3100/signup" navigation to finish...
+    - navigated to "http://localhost:3100/signup"
 
 ```
 
+# Page snapshot
+
 ```yaml
-- banner:
-  - link "I Love AI Music — home":
-    - /url: /
-    - text: I Love
-    - emphasis: AI Music
-  - navigation "Primary":
-    - link "Feed":
-      - /url: /
-      - img
-      - text: Feed
-    - link "Post music":
-      - /url: /create
-      - img
-      - text: Post music
-  - button "Mute all sound":
-    - img
-  - link "Post music":
-    - /url: /create
-    - img
-    - text: Post music
-  - button "More options":
-    - img "Smoke Tester"
-- complementary "Sidebar":
-  - navigation:
-    - link "Home":
-      - /url: /
-      - img
-      - text: Home
-    - link "Explore":
-      - /url: /?focus=search
-      - img
-      - text: Explore
-    - link "Create":
-      - /url: /create
-      - img
-      - text: Create
-    - link "Saved":
-      - /url: /?view=saved
-      - img
-      - text: Saved
-    - link "Profile":
-      - /url: /profile/smoketester
-      - img
-      - text: Profile
-  - link "Post music":
-    - /url: /create
-    - img
-    - text: Post music
-  - link "Smoke Tester Smoke Tester @smoketester":
-    - /url: /profile/smoketester
-    - img "Smoke Tester"
-    - strong: Smoke Tester
-    - emphasis: "@smoketester"
-  - text: 7 tracks · 6 artists I Love AI Music © 2026
-- main:
-  - img
-  - heading "This track faded out" [level=3]
-  - paragraph: It may have been deleted, or it only exists in another browser's local studio. The feed still has plenty of sound.
-  - link "Back to the feed":
-    - /url: /
-    - img
-    - text: Back to the feed
-- slider "Seek": "0"
-- button "Previous track":
-  - img
-- button "Play":
-  - img
-- button "Next track":
-  - img
-- button "Repeat one off":
-  - img
-- text: "--:--"
-- slider "Seek": "0"
-- text: "--:--"
-- button "Mute":
-  - img
-- slider "Volume": "85"
-- status
-- alert
+- generic [ref=f1e1]:
+  - generic [active]:
+    - generic [ref=f1e4]:
+      - generic [ref=f1e5]:
+        - navigation [ref=f1e7]:
+          - button [disabled] [ref=f1e8]:
+            - img "previous" [ref=f1e9]
+          - generic [ref=f1e11]:
+            - generic [ref=f1e12]: 1/
+            - text: "2"
+          - button [ref=f1e13] [cursor=pointer]:
+            - img "next" [ref=f1e14]
+        - link "Next.js 15.5.29 (outdated) Webpack" [ref=f1e17] [cursor=pointer]:
+          - /url: https://nextjs.org/docs/messages/version-staleness
+          - generic "An outdated version detected (latest is 16.4.6), upgrade is highly recommended!" [ref=f1e20]: Next.js 15.5.29 (outdated)
+          - generic [ref=f1e21]: Webpack
+      - generic [ref=f1e22]:
+        - dialog "Console Error" [ref=f1e23]:
+          - generic [ref=f1e26]:
+            - generic [ref=f1e27]:
+              - generic [ref=f1e28]:
+                - generic [ref=f1e29]: Console Error
+                - generic [ref=f1e31]:
+                  - button "Copy Error Info" [ref=f1e32] [cursor=pointer]
+                  - link "Go to related documentation" [ref=f1e35] [cursor=pointer]:
+                    - /url: https://react.dev/link/rules-of-hooks
+                  - link "Learn more about enabling Node.js inspector for server code with Chrome DevTools" [ref=f1e38] [cursor=pointer]:
+                    - /url: https://nextjs.org/docs/app/building-your-application/configuring/debugging#server-side-code
+              - generic [ref=f1e47]:
+                - paragraph [ref=f1e48]: "React has detected a change in the order of Hooks called by StoreProvider. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://react.dev/link/rules-of-hooks Previous render Next render ------------------------------------------------------ 1. useState useState 2. useState useState 3. useState useState 4. useState useState 5. useRef useRef 6. useState useState 7. useRef useRef 8. useState useState 9. useCallback useCallback 10. useCallback useCallback 11. useCallback useCallback 12. useCallback useCallback 13. useCallback useCallback 14. useEffect useEffect 15. useEffect useEffect 16. useEffect useEffect 17. undefined useCallback ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+                - button "Show More" [ref=f1e50] [cursor=pointer]
+            - generic [ref=f1e51]:
+              - generic [ref=f1e52]:
+                - paragraph [ref=f1e54]:
+                  - generic [ref=f1e59]: src\lib\store.tsx (385:43) @ StoreProvider
+                  - button "Open in editor" [ref=f1e60] [cursor=pointer]
+                - generic [ref=f1e65]:
+                  - generic [ref=f1e66]: 383 | const currentUser = s.users.find((u) => u.id === s.sessionUserId) ?? null;
+                  - generic [ref=f1e67]: 384 |
+                  - generic [ref=f1e68]: "> 385 | const refreshNotifications = useCallback(async () => {"
+                  - generic [ref=f1e69]: "| ^"
+                  - generic [ref=f1e70]: "386 | if (!currentUser || meta.mode !== \"supabase\") { setNotificationCount(0); return; }"
+                  - generic [ref=f1e71]: "387 | try {"
+                  - generic [ref=f1e72]: 388 | const res = await api("/api/notifications/unread-count");
+              - generic [ref=f1e73]:
+                - generic [ref=f1e74]:
+                  - paragraph [ref=f1e75]:
+                    - text: Call Stack
+                    - generic [ref=f1e76]: "20"
+                  - button "Show 17 ignore-listed frame(s)" [ref=f1e77] [cursor=pointer]
+                - generic [ref=f1e80]:
+                  - generic [ref=f1e81]:
+                    - text: StoreProvider
+                    - button "Open StoreProvider in editor" [ref=f1e82] [cursor=pointer]
+                  - text: src\lib\store.tsx (385:43)
+                - generic [ref=f1e85]:
+                  - generic [ref=f1e86]:
+                    - text: Providers
+                    - button "Open Providers in editor" [ref=f1e87] [cursor=pointer]
+                  - text: src\components\providers.tsx (10:5)
+                - generic [ref=f1e90]:
+                  - generic [ref=f1e91]:
+                    - text: RootLayout
+                    - button "Open RootLayout in editor" [ref=f1e92] [cursor=pointer]
+                  - text: src\app\layout.tsx (61:9)
+          - generic [ref=f1e95]:
+            - generic [ref=f1e96]: "1"
+            - generic [ref=f1e97]: "2"
+        - contentinfo [ref=f1e98]:
+          - region "Error feedback" [ref=f1e99]:
+            - paragraph [ref=f1e100]:
+              - link "Was this helpful?" [ref=f1e101] [cursor=pointer]:
+                - /url: https://nextjs.org/telemetry#error-feedback
+            - button "Mark as helpful" [ref=f1e102] [cursor=pointer]
+            - button "Mark as not helpful" [ref=f1e106] [cursor=pointer]
+    - generic [ref=f1e113] [cursor=pointer]:
+      - button "Open Next.js Dev Tools" [ref=f1e114]
+      - generic [ref=f1e118]:
+        - button "Open issues overlay" [ref=f1e119]:
+          - generic [ref=f1e120]:
+            - generic [aria-hidden] [ref=f1e121]: "1"
+            - generic [ref=f1e122]: "2"
+          - generic [ref=f1e123]:
+            - text: Issue
+            - generic [aria-hidden] [ref=f1e124]: s
+        - button "Collapse issues badge" [ref=f1e125]
+  - 'heading "Application error: a client-side exception has occurred while loading localhost (see the browser console for more information)." [level=2] [ref=f1e130]'
 ```
 
 # Test source
@@ -125,7 +134,8 @@ Call log:
   13  | test("creator and moderator journey", async ({ page, context }) => {
   14  |   // ---- signup ----
   15  |   await page.goto("/signup");
-  16  |   await page.getByLabel("Artist name").fill("Smoke Tester");
+> 16  |   await page.getByLabel("Artist name").fill("Smoke Tester");
+      |                                        ^ Error: locator.fill: Test timeout of 90000ms exceeded.
   17  |   await page.getByLabel("Gmail address").fill(EMAIL);
   18  |   await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   19  |   await page.getByLabel("Confirm password").fill(PASSWORD);
@@ -191,8 +201,7 @@ Call log:
   79  |   await expect(page.getByRole("link", { name: "Smoke Test Track" }).first()).toBeVisible();
   80  | 
   81  |   await page.goto(trackUrl, { waitUntil: "networkidle" });
-> 82  |   await expect(page.getByRole("heading", { level: 1, name: "Smoke Test Track" })).toBeVisible();
-      |                                                                                   ^ Error: expect(locator).toBeVisible() failed
+  82  |   await expect(page.getByRole("heading", { level: 1, name: "Smoke Test Track" })).toBeVisible();
   83  | 
   84  |   // ---- moderator: demo account, queue, dismiss, undo ----
   85  |   await context.clearCookies();
