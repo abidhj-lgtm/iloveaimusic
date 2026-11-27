@@ -215,15 +215,6 @@ export function TrackCard({ track, queue, index = 0, highlight = false }: { trac
     return false;
   };
 
-  const doLike = (fromDouble = false) => {
-    if (!gate("like music")) return;
-    if (!liked || fromDouble) {
-      if (!liked) toggleLike(track.id);
-      setBurst(true); blip(store.state.prefs.muted, 920);
-      setTimeout(() => setBurst(false), 700);
-    } else if (!fromDouble) toggleLike(track.id);
-  };
-
   const onMediaClick = () => {
     if (clickTimer.current) return;
     clickTimer.current = setTimeout(() => {

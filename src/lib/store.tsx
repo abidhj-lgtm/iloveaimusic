@@ -626,7 +626,13 @@ const publishToServer = async (localId: string, input: TrackInput, mode: "create
 
     setPrefs(patch) { mutate((st) => ({ ...st, prefs: { ...st.prefs, ...patch } })); },
 
-    likeCount: (t) => t.baseLikes + s.likes.filter((l) => l.trackId === t.id).length,
+    likeCount: (t) => {
+      const base = Math.max(0, Number(t.baseLikes ?? 0) || 0);
+      const mine = currentUser
+        ? s.likes.filter((l) => l.trackId === t.id && l.userId === currentUser.id).length
+        : 0;
+      return base + mine;
+    },
     isLiked: (trackId) => !!currentUser && s.likes.some((l) => l.userId === currentUser.id && l.trackId === trackId),
     isSaved: (trackId) => !!currentUser && s.saves.some((l) => l.userId === currentUser.id && l.trackId === trackId),
     isFollowing: (targetId) => !!currentUser && s.follows.some((f) => f.followerId === currentUser.id && f.targetId === targetId),

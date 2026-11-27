@@ -31,7 +31,7 @@ export function TrackActions({ trackId }: { trackId: string }) {
   const player = usePlayer();
   const router = useRouter();
   const gate = useGate();
-  const { state, currentUser, userById, likeCount, isLiked, isSaved, isFollowing, toggleLike, toggleSave, toggleFollow, deleteTrack } = store;
+  const { state, currentUser, userById, likeCount, isLiked, isSaved, isFollowing, toggleLike, toggleSave, toggleFollow, deleteTrack, commentsFor } = store;
   const track = state.tracks.find((t) => t.id === trackId);
   const [confirmDel, setConfirmDel] = useState(false);
   if (!track) return null;
@@ -53,16 +53,47 @@ export function TrackActions({ trackId }: { trackId: string }) {
 
   return (
     <>
+      <div className="stat-row seo-stats">
+        <span className="stat-plays" title={`${track.plays.toLocaleString()} plays`}>
+          <span className="stat-eq" aria-hidden><i /><i /><i /><i /></span>
+          <strong>{formatCount(track.plays)}</strong> plays
+        </span>
+        <span className={`stat-loves${liked ? " on" : ""}`} title={`${likeCount(track).toLocaleString()} loves`}>
+          <Heart size={14} fill="currentColor" />
+          <strong>{formatCount(likeCount(track))}</strong> loves
+        </span>
+        <span className="stat-talk" title={`${commentsFor(track.id).length} comments`}>
+          <MessageCircle size={14} />
+          <strong>{formatCount(commentsFor(track.id).length)}</strong> comments
+        </span>
+      </div>
       <div className="big-actions seo-actions">
         <button className="btn btn-brand" onClick={() => (isThis ? player.toggle() : player.playTrack(track, queue))}>
           {isThis && player.buffering ? <Loader2 size={17} className="spin" /> : playing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />}
           <span>{playing ? "Pause" : "Play track"}</span>
         </button>
-        <button className={`btn btn-ghost icon-label${liked ? " liked" : ""}`} onClick={() => { if (gate("like music", path)) { toggleLike(track.id); if (!liked) blip(state.prefs.muted, 920); } }}>
-          <Heart size={17} fill={liked ? "currentColor" : "none"} /><span>{liked ? "Liked" : "Like"}</span>
+        <button
+          className={`btn btn-ghost icon-label love-btn${liked ? " liked" : ""}`}
+          aria-pressed={liked}
+          aria-label={`${liked ? "Unlike" : "Love this track"} — ${likeCount(track).toLocaleString()} loves`}
+          onClick={() => { if (gate("like music", path)) { toggleLike(track.id); if (!liked) blip(state.prefs.muted, 920); } }}
+        >
+          <span className="love-ico">
+            <Heart size={17} fill={liked ? "currentColor" : "none"} />
+          </span>
+          <span>{liked ? "Liked" : "Like"}</span>
+          <em className="btn-count">{formatCount(likeCount(track))}</em>
         </button>
-        <button className={`btn btn-ghost icon-label${saved ? " saved" : ""}`} onClick={() => { if (gate("save music", path)) { toggleSave(track.id); toast.push({ kind: "ok", msg: saved ? "Removed from saved." : "Saved to your collection." }); } }}>
-          <Bookmark size={17} fill={saved ? "currentColor" : "none"} /><span>{saved ? "Saved" : "Save"}</span>
+        <button
+          className={`btn btn-ghost icon-label save-btn${saved ? " saved" : ""}`}
+          aria-pressed={saved}
+          aria-label={saved ? "Remove from saved" : "Save this track"}
+          onClick={() => { if (gate("save music", path)) { toggleSave(track.id); toast.push({ kind: "ok", msg: saved ? "Removed from saved." : "Saved to your collection." }); } }}
+        >
+          <span className="save-ico">
+            <Bookmark size={17} fill={saved ? "currentColor" : "none"} />
+          </span>
+          <span>{saved ? "Saved" : "Save"}</span>
         </button>
         <button className="btn btn-ghost icon-label" onClick={share}><Share2 size={17} /><span>Share</span></button>
         {artist && !owner && (

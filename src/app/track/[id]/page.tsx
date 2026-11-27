@@ -14,6 +14,7 @@ import { getRights } from "@/server/trust/service";
 import { getRepo } from "@/server/store";
 import type { Track, User } from "@/lib/types";
 
+
 export const dynamicParams = true;
 export const revalidate = 0;
 
