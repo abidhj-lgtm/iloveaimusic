@@ -47,9 +47,10 @@ export function NotificationBell() {
   const { currentUser, serverMode } = useStore();
   const enabled = !!currentUser && serverMode === "supabase";
   const wrap = useRef<HTMLDivElement>(null);
+  const { notificationCount, refreshNotifications } = useStore();
   const [items, setItems] = useState<Notif[]>([]);
-  const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
+  const unread = notificationCount;
 
   const load = useCallback(async () => {
     if (!enabled) return;
@@ -80,15 +81,15 @@ export function NotificationBell() {
 
   const markAll = useCallback(async () => {
     setItems((p) => p.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })));
-    setUnread(0);
+    void refreshNotifications();
     try { await fetch("/api/notifications/mark-all-read", { method: "POST", credentials: "same-origin" }); } catch { /* ignore */ }
   }, []);
 
   const openItem = useCallback(async (n: Notif) => {
     setOpen(false);
     if (!n.readAt) {
-      setUnread((u) => Math.max(0, u - 1));
       setItems((p) => p.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x)));
+      void refreshNotifications();
       fetch(`/api/notifications/${n.id}/read`, { method: "PATCH", credentials: "same-origin" }).catch(() => undefined);
     }
     if (n.track) router.push(`/track/${n.track.id}${n.commentId ? "#comments" : ""}`);

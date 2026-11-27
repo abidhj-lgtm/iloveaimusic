@@ -69,7 +69,9 @@ export const feedQuerySchema = z.object({
   view: z.enum(["all", "upload", "youtube", "saved", "liked", "following"]).default("all"),
   q: z.string().trim().max(120).default(""),
   cursor: z.string().trim().max(120).optional(),
-  limit: z.coerce.number().int().min(1).max(50).default(20)
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  genre: z.string().trim().max(40).optional(),
+  mood: z.string().trim().max(40).optional()
 });
 
 export const importSchema = z.object({

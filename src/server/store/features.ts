@@ -335,3 +335,59 @@ export async function unfollowPlaylist(userId: string, playlistId: string): Prom
 export async function followerCount(playlistId: string): Promise<number> {
   return countOf("playlist_follows", { playlist_id: eq(playlistId) });
 }
+
+/* ---------------- system announcements ---------------- */
+
+export async function broadcastAnnouncement(input: {
+  title: string; body: string; link: string | null;
+  created_by: string; expires_at: string | null;
+}): Promise<number> {
+  // Record the announcement itself
+  const rows = await call("system_announcements", "POST", {}, {
+    title: input.title,
+    body: input.body,
+    link: input.link,
+    created_by: input.created_by,
+    expires_at: input.expires_at
+  }, "return=representation");
+  const announcement = rows[0];
+  if (!announcement) return 0;
+
+  // Fan out to every user as a notification (best-effort, ignore failures)
+  const users = await call("profiles", "GET", {
+    select: "id",
+    filters: { id: `neq.${input.created_by}` },
+    limit: 5000
+  }) as { id: string }[];
+
+  let sent = 0;
+  for (const u of users) {
+    try {
+      await call("notifications", "POST", {}, {
+        user_id: u.id,
+        kind: "system",
+        actor_id: input.created_by,
+        track_id: null,
+        playlist_id: null,
+        comment_id: null
+      }, "resolution=ignore-duplicates,return=minimal");
+      sent++;
+    } catch { /* ignore per-user failures */ }
+  }
+  return sent;
+}
+
+/* ---------------- notification cleanup ---------------- */
+
+export async function cleanupOldNotifications(days: number): Promise<number> {
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const res = await fetch(
+    `${rest()}/notifications?created_at=lt.${cutoff}`,
+    { method: "DELETE", headers: H(), cache: "no-store" }
+  );
+  if (!res.ok) return 0;
+  // PostgREST returns no body for DELETE; use content-range if available
+  const range = res.headers.get("content-range") ?? "";
+  const match = range.match(/\/(\d+)$/);
+  return match ? Number(match[1]) : 0;
+}

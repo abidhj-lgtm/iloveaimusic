@@ -326,10 +326,37 @@ export function createSupabaseRepo(): Repo {
         const table = query.view === "saved" ? "saves" : query.view === "liked" ? "likes" : "follows";
         const key = query.view === "following" ? "target_id" : "track_id";
         const who = query.view === "following" ? "follower_id" : "user_id";
-        const rows = (await call(table, "GET", { select: key, filters: { [who]: eq(query.viewerId) }, limit: 5000 })) as Record<string, string>[];
+        const rows = (await call(table, "GET", { select: key, filters: { [who]: eq(query.viewerId) }, limit: 5000
+})) as Record<string, string>[];
         const ids = rows.map((r) => r[key]);
         if (!ids.length) return { items: [], nextCursor: null, hasMore: false };
         filters[query.view === "following" ? "user_id" : "id"] = inList(ids);
+      }
+
+      // Genre/Mood filtering via track_tags
+      if (query.genre || query.mood) {
+        const tags: string[] = [];
+        if (query.genre) tags.push(query.genre.toLowerCase());
+        if (query.mood) tags.push(query.mood.toLowerCase());
+        
+        const tagRows = (await call("track_tags", "GET", { 
+          select: "track_id", 
+          filters: { tag: inList(tags) }, 
+          limit: 5000 
+        })) as { track_id: string }[];
+        
+        const trackIds = [...new Set(tagRows.map((r) => r.track_id))];
+        if (!trackIds.length) return { items: [], nextCursor: null, hasMore: false };
+        
+        // If we already have an ID filter, intersect; otherwise set it
+        if (filters.id) {
+          const existingIds = filters.id.replace(/^in\.\((.*)\)$/, "$1").split(",").map(s => s.replace(/"/g, ""));
+          const intersection = existingIds.filter(id => trackIds.includes(id));
+          if (!intersection.length) return { items: [], nextCursor: null, hasMore: false };
+          filters.id = inList(intersection);
+        } else {
+          filters.id = inList(trackIds);
+        }
       }
 
       const groups: string[] = [];
@@ -356,7 +383,8 @@ export function createSupabaseRepo(): Repo {
       if (groups.length === 1) filters.or = groups[0];
       else if (groups.length > 1) filters.and = `(${groups.join(",")})`;
 
-      const rows = (await call("tracks", "GET", { filters, order: ORDER[query.sort], limit: query.limit + 1 })) as TrackRow[];
+      const rows = (await call("tracks", "GET", { filters, order: ORDER[query.sort], limit: query.limit + 1 })) as
+TrackRow[];
       const hasMore = rows.length > query.limit;
       const page = hasMore ? rows.slice(0, query.limit) : rows;
       const last = page[page.length - 1];

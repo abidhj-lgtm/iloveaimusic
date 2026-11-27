@@ -87,6 +87,8 @@ interface StoreCtx {
   isFollowing: (targetId: string) => boolean;
   userById: (id: string) => User | undefined;
   commentsFor: (trackId: string) => Comment[];
+  notificationCount: number;
+  refreshNotifications: () => Promise<void>;
 }
 
 const StoreContext = createContext<StoreCtx | null>(null);
@@ -219,6 +221,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   stateRef.current = state;
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const playThrottle = useRef(new Map<string, number>());
+  const [notificationCount, setNotificationCount] = useState(0);
 
   const push = useCallback((t: Omit<ToastItem, "id">) => {
     const id = uid();
@@ -378,6 +381,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const s = state;
   const currentUser = s.users.find((u) => u.id === s.sessionUserId) ?? null;
+
+  const refreshNotifications = useCallback(async () => {
+    if (!currentUser || meta.mode !== "supabase") { setNotificationCount(0); return; }
+    try {
+      const res = await api("/api/notifications/unread-count");
+      if (res.ok) setNotificationCount(res.unread ?? 0);
+    } catch { /* ignore */ }
+  }, [currentUser, meta.mode]);
+
+  useEffect(() => {
+    void refreshNotifications();
+    const iv = setInterval(refreshNotifications, 30000);
+    return () => clearInterval(iv);
+  }, [refreshNotifications]);
 
   const rollback = (msg: string) => { push({ kind: "err", msg }); void refreshContent(); };
 
@@ -632,6 +649,9 @@ const publishToServer = async (localId: string, input: TrackInput, mode: "create
     },
 
     setPrefs(patch) { mutate((st) => ({ ...st, prefs: { ...st.prefs, ...patch } })); },
+
+    notificationCount,
+    refreshNotifications,
 
     likeCount: (t) => {
       const base = Math.max(0, Number(t.baseLikes ?? 0) || 0);

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { resolveSession } from "@/server/session";
 import { SUPABASE_URL } from "@/server/env";
 import { fail, ok, readBody, readSessionToken, sameOrigin, serverError } from "@/server/http";
-import { findPlaylist, followPlaylist, unfollowPlaylist, isFollowingPlaylist, followerCount } from "@/server/store/features";
+import { findPlaylist, followPlaylist, unfollowPlaylist, isFollowingPlaylist, followerCount, notify } from "@/server/store/features";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +30,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     if (parsed.data.action === "follow") {
       await followPlaylist(viewer.id, id);
+      if (playlist.user_id !== viewer.id) {
+        await notify({
+          userId: playlist.user_id,
+          kind: "system",
+          actorId: viewer.id,
+          playlistId: id
+        });
+      }
     } else {
       await unfollowPlaylist(viewer.id, id);
     }
