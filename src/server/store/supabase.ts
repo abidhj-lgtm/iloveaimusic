@@ -1,5 +1,5 @@
 import "server-only";
-import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_ROLE_KEY } from "../env";
+import { SUPABASE_URL, SUPABASE_KEY } from "../env";
 import { reportError } from "../observability";
 import {
   encodeCursor, decodeCursor,
@@ -465,8 +465,8 @@ export function createSupabaseRepo(): Repo {
       const res = await fetch(`${root()}/storage/v1/object/upload/sign/${bucket}/${path}`, {
         method: "POST",
         headers: {
-          apikey: SUPABASE_SERVICE_ROLE_KEY,
-          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`
         }
       });
       if (!res.ok) {

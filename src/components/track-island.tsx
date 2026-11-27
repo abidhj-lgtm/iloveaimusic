@@ -12,6 +12,7 @@ import { usePlayer } from "@/lib/player";
 import { useTrackThumb, SourceBadge, LyricsView, CommentsPanel, CompactCard } from "@/components/track-card";
 import { Avatar, SmartImg, CopyButton, ConfirmDialog, EmptyState } from "@/components/ui";
 import { ytEmbed } from "@/lib/youtube";
+import { AddToPlaylistButton } from "@/components/playlist-ui";
 import { copyText, blip, formatCount, timeAgo } from "@/lib/utils";
 
 function useGate() {
@@ -75,19 +76,16 @@ export function TrackActions({ trackId }: { trackId: string }) {
         <button
           className={`btn btn-ghost icon-label love-btn${liked ? " liked" : ""}`}
           aria-pressed={liked}
-          aria-label={`${liked ? "Unlike" : "Love this track"} — ${likeCount(track).toLocaleString()} loves`}
           onClick={() => { if (gate("like music", path)) { toggleLike(track.id); if (!liked) blip(state.prefs.muted, 920); } }}
         >
           <span className="love-ico">
             <Heart size={17} fill={liked ? "currentColor" : "none"} />
           </span>
           <span>{liked ? "Liked" : "Like"}</span>
-          <em className="btn-count">{formatCount(likeCount(track))}</em>
         </button>
         <button
           className={`btn btn-ghost icon-label save-btn${saved ? " saved" : ""}`}
           aria-pressed={saved}
-          aria-label={saved ? "Remove from saved" : "Save this track"}
           onClick={() => { if (gate("save music", path)) { toggleSave(track.id); toast.push({ kind: "ok", msg: saved ? "Removed from saved." : "Saved to your collection." }); } }}
         >
           <span className="save-ico">
@@ -96,6 +94,7 @@ export function TrackActions({ trackId }: { trackId: string }) {
           <span>{saved ? "Saved" : "Save"}</span>
         </button>
         <button className="btn btn-ghost icon-label" onClick={share}><Share2 size={17} /><span>Share</span></button>
+        <AddToPlaylistButton trackId={track.id} title={track.title} />
         {artist && !owner && (
           <button className={`btn ${isFollowing(artist.id) ? "btn-ghost" : "btn-outline"} icon-label`} onClick={() => { if (gate("follow artists", path)) { toggleFollow(artist.id); toast.push({ kind: "ok", msg: isFollowing(artist.id) ? `Unfollowed ${artist.name}.` : `Following ${artist.name}.` }); } }}>
             <span>{isFollowing(artist.id) ? "Following" : `Follow ${artist.name.split(" ")[0]}`}</span>

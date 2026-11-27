@@ -3,9 +3,10 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Plus, Search, Bookmark, User as UserIcon, LogOut, Volume2, VolumeX, Music2, Headphones, Sparkles } from "lucide-react";
+import { Home, Plus, Search, Bookmark, User as UserIcon, LogOut, Volume2, VolumeX, Music2, Headphones, Sparkles, ListMusic, BarChart3 } from "lucide-react";
 import { useStore, useToast } from "@/lib/store";
 import { Logo, Avatar, Menu } from "./ui";
+import { NotificationBell } from "./notifications";
 import { formatCount } from "@/lib/utils";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -42,12 +43,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {prefs.muted ? <VolumeX size={19} /> : <Volume2 size={19} />}
             </button>
             <Link href="/create" className="btn btn-brand btn-sm header-cta"><Sparkles size={15} /><span>Post music</span></Link>
+            <NotificationBell />
             {currentUser ? (
               <Menu
                 trigger={<Avatar user={currentUser} size={32} />}
                 items={[
                   { label: "Your profile", icon: <UserIcon size={16} />, onClick: () => router.push(`/profile/${currentUser.handle}`) },
                   { label: "Saved tracks", icon: <Bookmark size={16} />, onClick: () => router.push("/?view=saved") },
+                  { label: "Your playlists", icon: <ListMusic size={16} />, onClick: () => router.push("/playlists") },
+                  { label: "Creator analytics", icon: <BarChart3 size={16} />, onClick: () => router.push("/analytics") },
                   { label: "Log out", icon: <LogOut size={16} />, danger: true, onClick: () => { logout(); toast.push({ kind: "info", msg: "Logged out. The music keeps playing." }); router.push("/"); } }
                 ]}
               />
