@@ -1187,3 +1187,32 @@ textarea::-webkit-scrollbar, .comments-list::-webkit-scrollbar, .stories::-webki
   .pl-create-bar{flex-direction:column}
   .an-cards{grid-template-columns:repeat(2,1fr)}
 }
+/* ── drag and drop reordering ────────────────────────────────── */
+.pl-track-row.draggable { cursor: grab; }
+.pl-track-row.draggable:active { cursor: grabbing; }
+.pl-track-row.draggable:hover { background: var(--surface2); }
+.pl-track-grip { color: var(--faint); flex-shrink:0; display:grid; place-items:center; width:22px; }
+.pl-track-row:hover .pl-track-grip { color: var(--muted); }
+.pl-track-saving { display:grid; place-items:center; width:22px; color: var(--lime); flex-shrink:0; }
+.act.save.saved {
+  color: var(--lime);
+}
+
+.act.playlist-btn {
+  color: var(--cyan);
+}
+
+.act.playlist-btn:hover {
+  background: rgba(53, 224, 255, 0.1);
+}
+/* ── playlist hero actions ───────────────────────────────────── */
+.pl-hero-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.pl-hero-actions .btn.done {
+  color: var(--lime);
+  border-color: rgba(198, 255, 61, 0.3);
+}

@@ -4,6 +4,7 @@ import { feedQuerySchema, trackSchema, firstIssue } from "@/server/validation";
 import { resolveSession } from "@/server/session";
 import { rateLimit } from "@/server/ratelimit";
 import { clientIp, fail, json, ok, readBody, readSessionToken, sameOrigin, serverError } from "@/server/http";
+import { getRepo } from "@/server/store";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,35 @@ export async function GET(req: NextRequest) {
       sort: parsed.data.sort, view: parsed.data.view,
       q: parsed.data.q, cursor: parsed.data.cursor ?? null, limit: parsed.data.limit
     });
-    return json({ ok: true, ...page });
+
+    // When searching, also return matching public playlists
+    let playlists: any[] = [];
+    if (parsed.data.q.trim()) {
+      try {
+        const repo = getRepo();
+        const safe = parsed.data.q.replace(/[(),"]/g, "").replace(/\s+/g, " ").trim();
+        if (safe) {
+          const rows = await (repo as any).searchPlaylists?.(safe, 10) ?? [];
+          if (rows.length) {
+            const userIds = [...new Set(rows.map((p: any) => p.user_id))];
+            const users = await repo.profilesByIds(userIds);
+            playlists = rows.map((p: any) => ({
+              type: "playlist",
+              id: p.id,
+              title: p.title,
+              description: p.description,
+              coverSeed: p.cover_seed,
+              coverPalette: p.cover_palette,
+              trackCount: p.track_count,
+              artist: users.find((u) => u.id === p.user_id) ?? null,
+              href: `/playlist/${p.id}`
+            }));
+          }
+        }
+      } catch { /* search is best-effort */ }
+    }
+
+    return json({ ok: true, ...page, playlists });
   } catch (err) {
     return serverError(err, "Could not load the feed.");
   }

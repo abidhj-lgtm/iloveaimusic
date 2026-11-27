@@ -270,3 +270,68 @@ export async function userSeries(userId: string, days = 30): Promise<PlaySeriesP
 export async function userTopTracks(userId: string, days = 30, limit = 10): Promise<TopTrackPoint[]> {
   return rpcRows<TopTrackPoint>("user_top_tracks", { p_user_id: userId, p_days: days, p_limit: limit });
 }
+
+export async function getOrCreateSavedPlaylist(userId: string): Promise<string> {
+  const existing = await playlistsByUser(userId, 100);
+  const saved = existing.find((p) => p.title === "Saved Tracks");
+  if (saved) return saved.id;
+  
+  const newPl = await createPlaylist({
+    user_id: userId,
+    title: "Saved Tracks",
+    description: "Tracks you've saved.",
+    cover_seed: "saved-tracks",
+    cover_palette: 1,
+    is_public: false
+  });
+  return newPl.id;
+}
+
+export async function toggleTrackInSavedPlaylist(userId: string, trackId: string, shouldSave: boolean): Promise<void> {
+  const playlistId = await getOrCreateSavedPlaylist(userId);
+  if (shouldSave) {
+    await addTrackToPlaylist(playlistId, trackId);
+  } else {
+    await removeTrackFromPlaylist(playlistId, trackId);
+  }
+}
+
+export async function searchPlaylists(query: string, limit = 10): Promise<PlaylistRow[]> {
+  const safe = query.replace(/[(),"]/g, "").replace(/\s+/g, " ").trim();
+  if (!safe) return [];
+  const res = await fetch(
+    `${rest()}/playlists?select=*&is_public=eq.true&or=(title.ilike.*${safe}*,description.ilike.*${safe}*)&order=created_at.desc&limit=${limit}`,
+    { headers: H(), cache: "no-store" }
+  );
+  if (!res.ok) return [];
+  const text = await res.text();
+  if (!text) return [];
+  return JSON.parse(text) as PlaylistRow[];
+}
+
+/* ---------------- playlist follows ---------------- */
+
+export async function isFollowingPlaylist(userId: string, playlistId: string): Promise<boolean> {
+  const row = await selectOne<{ id: string }>("playlist_follows", {
+    playlist_id: eq(playlistId),
+    user_id: eq(userId)
+  });
+  return !!row;
+}
+
+export async function followPlaylist(userId: string, playlistId: string): Promise<void> {
+  const existing = await isFollowingPlaylist(userId, playlistId);
+  if (!existing) {
+    await call("playlist_follows", "POST", {}, { playlist_id: playlistId, user_id: userId });
+  }
+}
+
+export async function unfollowPlaylist(userId: string, playlistId: string): Promise<void> {
+  await call("playlist_follows", "DELETE", {
+    filters: { playlist_id: eq(playlistId), user_id: eq(userId) }
+  });
+}
+
+export async function followerCount(playlistId: string): Promise<number> {
+  return countOf("playlist_follows", { playlist_id: eq(playlistId) });
+}

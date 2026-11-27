@@ -16,6 +16,7 @@ import { ytThumb } from "@/lib/youtube";
 import { timeAgo, formatCount, formatDuration, copyText, blip } from "@/lib/utils";
 import { Avatar, SmartImg, Menu, Eq, ConfirmDialog, EmptyState } from "./ui";
 import { ReportDialog } from "./report-dialog";
+import { AddToPlaylistButton } from "./playlist-ui";
 
 export function useTrackThumb(t: Track): { src: string; fallback: string } {
   const media = useMediaUrl(t.thumbKey);
@@ -296,6 +297,7 @@ export function TrackCard({ track, queue, index = 0, highlight = false }: { trac
           <button className={`act save${saved ? " saved" : ""}`} onClick={() => { if (gate("save music")) { toggleSave(track.id); toast.push({ kind: "ok", msg: saved ? "Removed from saved." : "Saved to your collection." }); } }} aria-label={saved ? "Unsave" : "Save"}>
             <Bookmark size={22} fill={saved ? "currentColor" : "none"} />
           </button>
+          <AddToPlaylistButton trackId={track.id} title={track.title} />
         </div>
 
         <div className="tcard-body">

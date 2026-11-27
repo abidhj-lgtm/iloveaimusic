@@ -389,9 +389,8 @@ const publishToServer = async (localId: string, input: TrackInput, mode: "create
   let coverPath: string | undefined;
 
   if (input.source === "upload") {
-    if (input.audioKey && !input.preset) {
+    if (input.audioKey) {
       const up = await uploadLocalBlob("audio", input.audioKey, (percent) => {
-        // Update UI with progress
         console.log(`Upload progress: ${percent}%`);
       });
       if (!up) {

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Music2, User as UserIcon } from "lucide-react";
+import { ArrowLeft, Music2, User as UserIcon, ListMusic } from "lucide-react";
 import { pageMetadata, ogImageUrl, profilePageJsonLd, breadcrumbJsonLd, jsonLdScript, SITE } from "@/lib/seo";
 import { avatarUrl, PALETTES, coverUrl } from "@/lib/covers";
 import { ytThumb } from "@/lib/youtube";
@@ -10,7 +10,9 @@ import { ProfileActions, ProfileGrid, ProfileCollections, ProfileLiveStats } fro
 import { PlayButton } from "@/components/play-button";
 import { EmptyState } from "@/components/track-card";
 import { artistCatalog } from "@/server/content-service";
+import { playlistsByUser } from "@/server/store/features";
 import type { Track, User } from "@/lib/types";
+
 
 export const dynamicParams = true;
 export const revalidate = 120;
@@ -32,7 +34,8 @@ async function load(handle: string) {
     duration: r.duration ?? undefined, plays: r.plays, baseLikes: r.like_count,
     createdAt: Date.parse(r.created_at)
   }));
-  return { artist, tracks };
+  const playlists = await playlistsByUser(artist.id, 6).catch(() => []);
+  return { artist, tracks, playlists };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }): Promise<Metadata> {
@@ -65,7 +68,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
     );
   }
 
-  const { artist, tracks } = data;
+  const { artist, tracks, playlists } = data;
   const p = PALETTES[artist.avatarPalette % PALETTES.length];
   const genres = [...new Set(tracks.flatMap((t) => t.stylePrompt.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean)))].slice(0, 8);
   const totalPlays = tracks.reduce((a, t) => a + t.plays, 0);
@@ -130,6 +133,26 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
           </ul>
         )}
       </section>
+
+      {playlists && playlists.length > 0 && (
+        <section className="section seo-section" id="playlists">
+          <h2 className="section-title"><ListMusic size={18} />Playlists · {playlists.length}</h2>
+          <div className="pl-grid">
+            {playlists.map((pl: any) => (
+              <Link key={pl.id} href={`/playlist/${pl.id}`} className="pl-card">
+                <span className="pl-cover">
+                  <img src={coverUrl(pl.cover_seed || pl.id, pl.cover_palette)} alt="" loading="lazy" />
+                  <span className="pl-cover-count"><Music2 size={14} />{pl.track_count}</span>
+                </span>
+                <span className="pl-meta">
+                  <strong>{pl.title}</strong>
+                  <em>{pl.track_count} track{pl.track_count === 1 ? "" : "s"}</em>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <ProfileGrid handle={artist.handle} />
       <ProfileCollections handle={artist.handle} />
