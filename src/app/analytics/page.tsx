@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { BarChart3, Loader2, Play, Heart, MessageCircle, Disc3 } from "lucide-react";
+import { BarChart3, Loader2, Play, Heart, MessageCircle, Disc3, Download } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { formatCount } from "@/lib/utils";
 
@@ -47,6 +47,14 @@ export default function AnalyticsPage() {
           {[7, 30, 90].map((d) => (
             <button key={d} role="tab" aria-selected={days === d} className={`an-range-btn${days === d ? " active" : ""}`} onClick={() => setDays(d)}>{d}d</button>
           ))}
+          <button 
+            type="button" 
+            className="btn btn-ghost btn-sm" 
+            onClick={() => window.open(`/api/analytics/user/export?days=${days}`, "_blank")}
+            title="Download CSV"
+          >
+            <Download size={15} /> Export CSV
+          </button>
         </div>
       </div>
 
@@ -86,7 +94,10 @@ export default function AnalyticsPage() {
                   <li key={t.track_id} className="an-top-row">
                     <span className="an-top-rank">{i + 1}</span>
                     <Link href={`/track/${t.track_id}`} className="an-top-title">{t.title}</Link>
-                    <span className="an-top-stats"><Play size={13} /> {formatCount(t.plays)} · <Heart size={13} /> {formatCount(t.unique_listeners)}</span>
+                    <span className="an-top-stats">
+  <Play size={13} /> {formatCount(t.plays)} plays · 
+  <span className="an-listener-badge"><Headphones size={12} /> {formatCount(t.unique_listeners)} listeners</span>
+</span>
                   </li>
                 ))}
               </ol>

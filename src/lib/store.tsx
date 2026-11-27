@@ -39,16 +39,72 @@ const toUser = (s: ServerUser): User => ({
   avatarPalette: s.avatarPalette, createdAt: s.createdAt
 });
 
+const apiCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5000; // 5 seconds
+const LOCAL_CACHE_KEY = "ilistenai:api-cache";
+const LOCAL_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+function getLocalCache(): Record<string, { data: any; timestamp: number }> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(LOCAL_CACHE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function setLocalCache(key: string, data: any) {
+  if (typeof window === "undefined") return;
+  try {
+    const cache = getLocalCache();
+    cache[key] = { data, timestamp: Date.now() };
+    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Quota exceeded or other error — ignore
+  }
+}
+
 async function api(path: string, init?: RequestInit): Promise<any> {
+  const isGet = !init || init.method === "GET" || !init.method;
+  const cacheKey = isGet ? path : null;
+
+  if (!isGet) {
+    // Clear cache on mutations to prevent stale reads immediately after
+    apiCache.clear();
+  } else if (cacheKey) {
+    const cached = apiCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.data;
+    }
+  }
+
   try {
     const res = await fetch(path, {
       ...init,
       headers: init?.body instanceof FormData ? undefined : { "Content-Type": "application/json" },
-      credentials: "same-origin", cache: "no-store"
+      credentials: "same-origin",
+      cache: isGet ? "default" : "no-store"
     });
     const data = await res.json().catch(() => ({}));
-    return { ok: res.ok && data?.ok !== false, ...data };
-  } catch {
+    const result = { ok: res.ok && data?.ok !== false, ...data };
+    
+    if (cacheKey && result.ok) {
+      apiCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      // Also cache in localStorage for offline fallback
+      setLocalCache(cacheKey, result);
+    }
+    return result;
+  } catch (err) {
+    // Network error — try to return cached data from localStorage
+    if (cacheKey) {
+      const localCache = getLocalCache();
+      const cached = localCache[cacheKey];
+      if (cached && Date.now() - cached.timestamp < LOCAL_CACHE_TTL) {
+        console.warn(`[api] Network error, returning cached data for ${cacheKey}`);
+        return { ...cached.data, _fromCache: true };
+      }
+    }
     return { ok: false, error: "Can't reach the server. Is the dev terminal still running?", code: "network" };
   }
 }

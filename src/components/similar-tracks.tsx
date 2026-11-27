@@ -4,8 +4,9 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Music2 } from "lucide-react";
 import { TrackCard, SkeletonCard } from "@/components/track-card";
+import { SilentErrorBoundary } from "@/components/ui";
 
-export function SimilarTracks({ trackId }: { trackId: string }) {
+function SimilarTracksInner({ trackId }: { trackId: string }) {
   const [tracks, setTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,5 +46,13 @@ export function SimilarTracks({ trackId }: { trackId: string }) {
         ))}
       </div>
     </section>
+  );
+}
+
+export function SimilarTracks(props: { trackId: string }) {
+  return (
+    <SilentErrorBoundary>
+      <SimilarTracksInner {...props} />
+    </SilentErrorBoundary>
   );
 }

@@ -42,11 +42,13 @@ export const absoluteUrl = (path = "/") => `${SITE.url}${path.startsWith("/") ? 
 export const trackCover = (t: Track): string =>
   t.source === "youtube" && t.youtubeId ? ytThumb(t.youtubeId) : coverUrl(t.coverSeed, t.coverPalette);
 
-export function ogImageUrl(opts: { title: string; subtitle?: string; palette?: number; kind?: string }): string {
-  const p = new URLSearchParams({ title: opts.title.slice(0, 90) });
+export function ogImageUrl(opts: { title: string; subtitle?: string; palette?: number; kind?: string; imageUrl?: string }): string {
+  const p = new URLSearchParams({ 
+    title: opts.title.slice(0, 90),
+    type: opts.kind || "track"
+  });
   if (opts.subtitle) p.set("subtitle", opts.subtitle.slice(0, 60));
-  if (opts.palette !== undefined) p.set("palette", String(opts.palette));
-  if (opts.kind) p.set("kind", opts.kind);
+  if (opts.imageUrl) p.set("image", opts.imageUrl);
   return absoluteUrl(`/api/og?${p.toString()}`);
 }
 
@@ -184,6 +186,28 @@ export function profilePageJsonLd(artist: User, tracks: Track[]) {
         ...(isoDuration(t.duration) ? { duration: isoDuration(t.duration) } : {})
       }))
     }
+  };
+}
+
+export function musicPlaylistJsonLd(playlist: any, owner: User, tracks: Track[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "MusicPlaylist",
+    "name": playlist.title,
+    "description": playlist.description || `A playlist by ${owner.name} on ${SITE.name}.`,
+    "byArtist": {
+      "@type": "MusicGroup",
+      "name": owner.name,
+      "url": absoluteUrl(`/profile/${owner.handle}`)
+    },
+    "url": absoluteUrl(`/playlist/${playlist.id}`),
+    "numTracks": tracks.length,
+    "track": tracks.slice(0, 20).map((t, i) => ({
+      "@type": "MusicRecording",
+      "name": t.title,
+      "position": i + 1,
+      "url": absoluteUrl(`/track/${t.id}`)
+    }))
   };
 }
 

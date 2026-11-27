@@ -138,9 +138,9 @@ export function TrackCoverIsland({ trackId }: { trackId: string }) {
   const playing = isThis && player.playing;
   const related = state.tracks.filter((t) => t.userId === track.userId && t.id !== track.id).map((t) => t.id);
   return (
-    <div className={`hero-cover${playing ? " spinning-glow" : ""}`}>
-      <SmartImg src={src} fallback={fallback} alt={`Cover art for ${track.title}`} className="hero-cover-img" />
-      <button className="hero-play" onClick={() => (isThis ? player.toggle() : player.playTrack(track, [track.id, ...related]))} aria-label={playing ? "Pause" : "Play"}>
+        <div className={`hero-cover${playing ? " spinning-glow" : ""}`}>
+          <SmartImg src={src} fallback={fallback} alt={`Cover art for ${track.title}`} className="hero-cover-img" priority sizes="50vw" width={640} height={640} />
+          <button className="hero-play" onClick={() => (isThis ? player.toggle() : player.playTrack(track, [track.id, ...related]))} aria-label={playing ? "Pause" : "Play"}>
         {isThis && player.buffering ? <Loader2 size={30} className="spin" /> : playing ? <Pause size={30} fill="currentColor" /> : <Play size={30} fill="currentColor" className="nudge" />}
       </button>
       {track.live && <span className="live-badge corner"><i />LIVE</span>}
@@ -242,7 +242,7 @@ export function TrackClientOnly({ trackId }: { trackId: string }) {
       <Link href="/" className="back-link"><ArrowLeft size={16} />Back to feed</Link>
       <div className="track-hero fade-up">
         <div className={`hero-cover${playing ? " spinning-glow" : ""}`}>
-          <SmartImg src={src} fallback={fallback} alt={`Cover art for ${track.title}`} className="hero-cover-img" />
+          <SmartImg src={src} fallback={fallback} alt={`Cover art for ${track.title}`} className="hero-cover-img" priority sizes="50vw" width={640} height={640} />
           <button className="hero-play" onClick={() => (isThis ? player.toggle() : player.playTrack(track, queue))} aria-label={playing ? "Pause" : "Play"}>
             {isThis && player.buffering ? <Loader2 size={30} className="spin" /> : playing ? <Pause size={30} fill="currentColor" /> : <Play size={30} fill="currentColor" className="nudge" />}
           </button>

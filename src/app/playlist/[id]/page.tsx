@@ -7,6 +7,7 @@ import { ListMusic, Loader2, Play, GripVertical, Share2, Check, UserPlus, UserMi
 import { useStore, useToast } from "@/lib/store";
 import { coverUrl } from "@/lib/covers";
 import { formatDuration, formatCount, copyText } from "@/lib/utils";
+import { pageMetadata, ogImageUrl, profilePageJsonLd, breadcrumbJsonLd, jsonLdScript, musicPlaylistJsonLd, SITE } from "@/lib/seo";
 
 interface PlaylistFull {
   id: string; user_id: string; title: string; description: string;

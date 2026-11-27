@@ -203,9 +203,24 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     };
   }, [step]);
 
-  // progress polling
+  // progress polling & next track prefetch
   useEffect(() => {
     if (!playing || !track) return;
+    
+    // Prefetch next track audio if we are in the last 15 seconds
+    if (track.source === "upload" && duration > 0 && (duration - position) < 15) {
+      const q = queueRef.current.length ? queueRef.current : [track.id];
+      const idx = q.indexOf(track.id);
+      const nextId = q[(idx + 1 + q.length) % q.length];
+      if (nextId !== track.id) {
+        const nextTrack = stateRef.current.tracks.find((x) => x.id === nextId);
+        if (nextTrack && nextTrack.source === "upload" && nextTrack.audioKey) {
+          // Silently fetch and cache the next audio blob in IndexedDB
+          getMediaUrl(nextTrack.audioKey).catch(() => {});
+        }
+      }
+    }
+
     const iv = setInterval(() => {
       if (track.source === "youtube") {
         try {

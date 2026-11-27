@@ -7,21 +7,33 @@ export const dynamic = "force-dynamic";
 
 async function timedCheck(fn: () => Promise<unknown>) {
   const started = Date.now();
-  try { await fn(); return { ok: true, ms: Date.now() - started }; }
-  catch (err) { reportError(err, { route: "health" }); return { ok: false, ms: Date.now() - started, error: err instanceof Error ? err.message : "error" }; }
+  try { 
+    await fn(); 
+    return { ok: true, ms: Date.now() - started }; 
+  } catch (err) { 
+    reportError(err, { route: "health" }); 
+    return { ok: false, ms: Date.now() - started, error: err instanceof Error ? err.message : "error" }; 
+  }
 }
 
 export async function GET() {
+  // 1. Check Database
   const db = await timedCheck(() => getRepo().countPublicTracks());
 
+  // 2. Check Redis/Upstash (if configured)
   let redis: { ok: boolean; ms: number; error?: string } | null = null;
   if (UPSTASH_URL && UPSTASH_TOKEN) {
     redis = await timedCheck(async () => {
-      const res = await fetch(`${UPSTASH_URL}/ping`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` }, cache: "no-store", signal: AbortSignal.timeout(3000) });
+      const res = await fetch(`${UPSTASH_URL}/ping`, { 
+        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` }, 
+        cache: "no-store", 
+        signal: AbortSignal.timeout(3000) 
+      });
       if (!res.ok) throw new Error(`upstash ${res.status}`);
     });
   }
 
+  // 3. Gather Environment Warnings
   const warnings: string[] = [];
   if (MAIL_MODE === "dev") warnings.push("email in dev mode — verification links are not delivered");
   if (RATE_LIMIT_MODE === "in-process") warnings.push("rate limits reset on cold start — set Upstash");
@@ -29,6 +41,7 @@ export async function GET() {
   if (!observabilityEnabled()) warnings.push("error reporting to Sentry off — set SENTRY_DSN");
   if (!GOOGLE_ENABLED) warnings.push("Google sign-in disabled");
 
+  // 4. Determine overall health
   const healthy = db.ok && (redis?.ok ?? true);
 
   return NextResponse.json({
@@ -36,7 +49,10 @@ export async function GET() {
     site: "iloveaimusic.com",
     env: APP_ENV,
     release: RELEASE,
-    checks: { db: { mode: DB_MODE, ...db }, redis: redis ?? { mode: "in-process", ok: true, ms: 0 } },
+    checks: { 
+      db: { mode: DB_MODE, ...db }, 
+      redis: redis ?? { mode: "in-process", ok: true, ms: 0 } 
+    },
     email: MAIL_MODE,
     google: GOOGLE_ENABLED,
     rateLimit: RATE_LIMIT_MODE,
@@ -44,5 +60,8 @@ export async function GET() {
     backups: BACKUP_TOKEN ? "enabled" : "disabled",
     warnings,
     time: new Date().toISOString()
-  }, { status: healthy ? 200 : 503, headers: { "Cache-Control": "no-store" } });
+  }, { 
+    status: healthy ? 200 : 503, 
+    headers: { "Cache-Control": "no-store" } 
+  });
 }

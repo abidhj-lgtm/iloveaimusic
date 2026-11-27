@@ -259,16 +259,42 @@ export async function setTrackTags(trackId: string, tags: string[]): Promise<voi
 
 /* ---------------- analytics ---------------- */
 
-export async function trackSeries(trackId: string, days = 30): Promise<PlaySeriesPoint[]> {
-  return rpcRows<PlaySeriesPoint>("track_play_series", { p_track_id: trackId, p_days: days });
+/* ---------------- analytics time-series ---------------- */
+
+export async function trackSeries(trackId: string, days: number): Promise<{ day: string; plays: number; unique_listeners: number }[]> {
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const res = await fetch(
+    `${rest()}/rpc/get_track_series?p_track_id=${trackId}&p_days=${days}&p_cutoff=${cutoff}`,
+    { headers: H(), cache: "no-store" }
+  );
+  if (!res.ok) return [];
+  const text = await res.text();
+  if (!text) return [];
+  return JSON.parse(text);
 }
 
-export async function userSeries(userId: string, days = 30): Promise<PlaySeriesPoint[]> {
-  return rpcRows<PlaySeriesPoint>("user_play_series", { p_user_id: userId, p_days: days });
+export async function userSeries(userId: string, days: number): Promise<{ day: string; plays: number; unique_listeners: number }[]> {
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const res = await fetch(
+    `${rest()}/rpc/get_user_series?p_user_id=${userId}&p_days=${days}&p_cutoff=${cutoff}`,
+    { headers: H(), cache: "no-store" }
+  );
+  if (!res.ok) return [];
+  const text = await res.text();
+  if (!text) return [];
+  return JSON.parse(text);
 }
 
-export async function userTopTracks(userId: string, days = 30, limit = 10): Promise<TopTrackPoint[]> {
-  return rpcRows<TopTrackPoint>("user_top_tracks", { p_user_id: userId, p_days: days, p_limit: limit });
+export async function userTopTracks(userId: string, days: number, limit: number): Promise<{ track_id: string; title: string; plays: number; unique_listeners: number }[]> {
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const res = await fetch(
+    `${rest()}/rpc/get_user_top_tracks?p_user_id=${userId}&p_days=${days}&p_cutoff=${cutoff}&p_limit=${limit}`,
+    { headers: H(), cache: "no-store" }
+  );
+  if (!res.ok) return [];
+  const text = await res.text();
+  if (!text) return [];
+  return JSON.parse(text);
 }
 
 export async function getOrCreateSavedPlaylist(userId: string): Promise<string> {

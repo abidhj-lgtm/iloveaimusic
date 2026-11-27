@@ -14,7 +14,7 @@ import { useMediaUrl } from "@/lib/idb";
 import { coverUrl } from "@/lib/covers";
 import { ytThumb } from "@/lib/youtube";
 import { timeAgo, formatCount, formatDuration, copyText, blip } from "@/lib/utils";
-import { Avatar, SmartImg, Menu, Eq, ConfirmDialog, EmptyState } from "./ui";
+import { Avatar, SmartImg, Menu, Eq, ConfirmDialog, EmptyState, ErrorBoundary } from "./ui";
 import { ReportDialog } from "./report-dialog";
 import { AddToPlaylistButton } from "./playlist-ui";
 
@@ -67,7 +67,7 @@ export function LyricsView({ track }: { track: Track }) {
   );
 }
 
-export function CommentsPanel({ track, autoFocus = false }: { track: Track; autoFocus?: boolean }) {
+function CommentsPanelInner({ track, autoFocus = false }: { track: Track; autoFocus?: boolean }) {
   const { currentUser, commentsFor, userById, addComment, deleteComment } = useStore();
   const toast = useToast();
   const router = useRouter();
@@ -149,6 +149,20 @@ export function CommentsPanel({ track, autoFocus = false }: { track: Track; auto
   );
 }
 
+export function CommentsPanel(props: { track: Track; autoFocus?: boolean }) {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div className="comments-fallback" style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>
+          <p>Comments unavailable right now.</p>
+        </div>
+      }
+    >
+      <CommentsPanelInner {...props} />
+    </ErrorBoundary>
+  );
+}
+
 export function CommentsDrawer({ track, onClose }: { track: Track | null; onClose: () => void }) {
   const player = usePlayer();
   const { userById } = useStore();
@@ -187,7 +201,7 @@ export function CommentsDrawer({ track, onClose }: { track: Track | null; onClos
   );
 }
 
-export function TrackCard({ track, queue, index = 0, highlight = false }: { track: Track; queue: string[]; index?: number; highlight?: boolean }) {
+function TrackCardInner({ track, queue, index = 0, highlight = false }: { track: Track; queue: string[]; index?: number; highlight?: boolean }) {
   const store = useStore();
   const toast = useToast();
   const player = usePlayer();
@@ -301,7 +315,7 @@ export function TrackCard({ track, queue, index = 0, highlight = false }: { trac
         </div>
 
         <div className="tcard-body">
-          <Link href={`/track/${track.id}`} className="tcard-title">{track.title}</Link>
+          <Link href={`/track/${track.id}`} className="tcard-title" prefetch={true}>{track.title}</Link>
           {track.background && (
             <p className={`tcard-bg${expanded ? "" : " clamp"}`}>
               {track.background}
@@ -325,6 +339,14 @@ export function TrackCard({ track, queue, index = 0, highlight = false }: { trac
   );
 }
 
+export function TrackCard(props: { track: Track; queue: string[]; index?: number; highlight?: boolean }) {
+  return (
+    <ErrorBoundary fallback={<div className="tcard skel-card" aria-hidden><div className="skel-row"><span className="skel skel-avatar" /><span className="skel skel-line w40" /></div><div className="skel skel-media" /><div className="skel-row"><span className="skel skel-line w60" /></div><div className="skel-row"><span className="skel skel-line w80" /></div></div>}>
+      <TrackCardInner {...props} />
+    </ErrorBoundary>
+  );
+}
+
 function ArrowIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -341,7 +363,7 @@ export function CompactCard({ track, queue }: { track: Track; queue: string[] })
   const isThis = player.track?.id === track.id;
   return (
     <div className={`gcard${isThis && player.playing ? " is-playing" : ""}`}>
-      <Link href={`/track/${track.id}`} className="gcard-link" aria-label={track.title}>
+      <Link href={`/track/${track.id}`} className="tcard-link" aria-label={track.title} prefetch={true}>
         <SmartImg src={src} fallback={fallback} alt="" className="gcard-img" />
         <span className="gcard-badge"><SourceBadge t={track} compact /></span>
       </Link>

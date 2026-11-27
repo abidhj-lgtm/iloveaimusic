@@ -4,6 +4,7 @@ import { feedQuerySchema, trackSchema, firstIssue } from "@/server/validation";
 import { resolveSession } from "@/server/session";
 import { rateLimit } from "@/server/ratelimit";
 import { clientIp, fail, json, ok, readBody, readSessionToken, sameOrigin, serverError } from "@/server/http";
+import { revalidatePath } from "next/cache";
 import { getRepo } from "@/server/store";
 import { searchPlaylists } from "@/server/store/features";
 
@@ -67,7 +68,15 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return fail(firstIssue(parsed.error), 400, "validation");
 
   try {
-    return ok(await createTrackForUser(viewer.id, parsed.data, ip));
+    const result = await createTrackForUser(viewer.id, parsed.data, ip);
+    
+    // On-demand revalidation: instantly update the feed and user's profile
+    revalidatePath("/");
+    if (viewer.handle) {
+      revalidatePath(`/profile/${viewer.handle}`);
+    }
+    
+    return ok(result);
   } catch (err) {
     return serverError(err, "Could not publish the track.");
   }

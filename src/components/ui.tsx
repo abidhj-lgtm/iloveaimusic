@@ -8,6 +8,7 @@ import { copyText } from "@/lib/utils";
 import { useToast } from "@/lib/store";
 import { SITE } from "@/lib/seo";
 import type { User } from "@/lib/types";
+import Image from "next/image";
 
 export function Logo({ large = false }: { large?: boolean }) {
   return (
@@ -36,10 +37,35 @@ export function Avatar({ user, size = 38, ring = false }: { user: User; size?: n
   return ring ? <span className="avatar-ring" style={{ width: size + 6, height: size + 6 }}>{img}</span> : img;
 }
 
-export function SmartImg({ src, fallback, alt, className }: { src: string; fallback: string; alt: string; className?: string }) {
+
+
+export function SmartImg({ src, fallback, alt, className, priority = false, sizes = "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw", width = 400, height = 400, ...props }: { 
+  src: string; fallback: string; alt: string; className?: string; priority?: boolean; sizes?: string; width?: number; height?: number; [key: string]: any 
+}) {
   const [cur, setCur] = useState(src);
   useEffect(() => { setCur(src); }, [src]);
-  return <img src={cur} alt={alt} className={className} loading="lazy" onError={() => { if (cur !== fallback) setCur(fallback); }} />;
+
+  // If it's a data URI (like our SVG coverUrl), Next.js Image can't optimize it, so use regular img
+  if (cur.startsWith("data:")) {
+    return <img src={cur} alt={alt} className={className} loading={priority ? "eager" : "lazy"} {...props} />;
+  }
+
+  return (
+    <Image
+      src={cur}
+      alt={alt}
+      className={className}
+      width={width}
+      height={height}
+      priority={priority}
+      sizes={sizes}
+      loading={priority ? "eager" : "lazy"}
+      onError={() => {
+        if (cur !== fallback) setCur(fallback);
+      }}
+      {...props}
+    />
+  );
 }
 
 export function Modal({ open, onClose, title, children, width = 460 }: {
@@ -158,3 +184,43 @@ export function Field({ label, hint, error, counter, children, required }: {
 export const Eq = ({ playing, small = false }: { playing: boolean; small?: boolean }) => (
   <span className={`eq${playing ? " on" : ""}${small ? " eq-sm" : ""}`} aria-hidden><i /><i /><i /><i /><i /></span>
 );
+
+/* ---------------- Error Boundaries ---------------- */
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("ErrorBoundary caught:", error, errorInfo);
+    this.props.onError?.(error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || null;
+    }
+    return this.props.children;
+  }
+}
+
+export function SilentErrorBoundary({ children }: { children: React.ReactNode }) {
+  return <ErrorBoundary fallback={null}>{children}</ErrorBoundary>;
+}

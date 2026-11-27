@@ -4,8 +4,9 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { TrendingUp } from "lucide-react";
 import { TrackCard, SkeletonCard } from "@/components/track-card";
+import { SilentErrorBoundary } from "@/components/ui";
 
-export function TrendingSection() {
+function TrendingSectionInner() {
   const [tracks, setTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,5 +46,13 @@ export function TrendingSection() {
         ))}
       </div>
     </section>
+  );
+}
+
+export function TrendingSection() {
+  return (
+    <SilentErrorBoundary>
+      <TrendingSectionInner />
+    </SilentErrorBoundary>
   );
 }

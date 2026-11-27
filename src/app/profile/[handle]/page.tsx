@@ -15,7 +15,7 @@ import type { Track, User } from "@/lib/types";
 
 
 export const dynamicParams = true;
-export const revalidate = 120;
+export const revalidate = 60; // ISR: Cache for 60s, then stale-while-revalidate
 
 async function load(handle: string) {
   const data = await artistCatalog(handle).catch(() => null);

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bell, Heart, MessageCircle, UserPlus, ListMusic, Info, CheckCheck, Inbox } from "lucide-react";
 import { avatarUrl } from "@/lib/covers";
 import { useStore } from "@/lib/store";
+import { SilentErrorBoundary } from "@/components/ui";
 
 interface NotifActor { id: string; name: string; handle: string; avatarPalette: number }
 interface NotifTrack { id: string; title: string }
@@ -42,7 +43,7 @@ function verb(n: Notif): string {
   }
 }
 
-export function NotificationBell() {
+function NotificationBellInner() {
   const router = useRouter();
   const { currentUser, serverMode } = useStore();
   const enabled = !!currentUser && serverMode === "supabase";
@@ -159,5 +160,13 @@ export function NotificationBell() {
         </div>
       )}
     </div>
+  );
+}
+
+export function NotificationBell() {
+  return (
+    <SilentErrorBoundary>
+      <NotificationBellInner />
+    </SilentErrorBoundary>
   );
 }

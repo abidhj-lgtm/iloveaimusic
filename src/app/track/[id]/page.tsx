@@ -17,7 +17,7 @@ import { SimilarTracks } from "@/components/similar-tracks";
 
 
 export const dynamicParams = true;
-export const revalidate = 0;
+export const revalidate = 30; // ISR: Cache for 30s, then stale-while-revalidate
 
 export function generateStaticParams() {
   return CATALOG_TRACKS.map((t) => ({ id: t.id }));
@@ -49,7 +49,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     title: `${track.title} — ${artist.name}`,
     description: trackDescription(track, artist),
     path: `/track/${track.id}`,
-    image: ogImageUrl({ title: track.title, subtitle: artist.name, palette: track.coverPalette, kind: track.source === "youtube" ? "youtube" : "track" }),
+    image: ogImageUrl({ 
+      title: track.title, 
+      subtitle: artist.name, 
+      kind: track.source === "youtube" ? "youtube" : "track",
+      imageUrl: track.source === "youtube" && track.youtubeId ? ytThumb(track.youtubeId) : coverUrl(track.coverSeed, track.coverPalette)
+    }),
     keywords: [...trackTags(track), artist.name, "AI music", `${artist.name} AI songs`],
     type: "music.song", publishedTime: track.createdAt, modifiedTime: track.updatedAt
   });
@@ -182,7 +187,7 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
           <div className="instru"><Disc3 size={34} className="slow-spin" /><div><strong>Instrumental</strong><p>No lyrics — let the frequencies do the talking.</p></div></div>
         ) : <LyricBlocks lyrics={track.lyrics} />}
       </section>
-      
+
       <SimilarTracks trackId={track.id} />
       <TrackComments trackId={track.id} />
 
