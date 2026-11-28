@@ -430,3 +430,16 @@ export async function getDistinctTags(): Promise<string[]> {
   const rows = JSON.parse(text) as { tag: string }[];
   return [...new Set(rows.map((r) => r.tag))].sort();
 }
+
+export async function addTrackToSavedPlaylist(userId: string, trackId: string): Promise<void> {
+  const playlistId = await getOrCreateSavedPlaylist(userId);
+  await addTrackToPlaylist(playlistId, trackId);
+}
+
+export async function removeTrackFromSavedPlaylist(userId: string, trackId: string): Promise<void> {
+  const existing = await playlistsByUser(userId, 100);
+  const saved = existing.find((p) => p.title === "Saved Tracks");
+  if (saved) {
+    await removeTrackFromPlaylist(saved.id, trackId);
+  }
+}

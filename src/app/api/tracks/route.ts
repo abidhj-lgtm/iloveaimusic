@@ -15,6 +15,15 @@ export async function GET(req: NextRequest) {
   if (!parsed.success) return fail(firstIssue(parsed.error), 400, "validation");
   try {
     const viewer = await resolveSession(readSessionToken(req));
+    
+    // Rate limit search queries specifically (10 per minute)
+    if (parsed.data.q && parsed.data.q.trim()) {
+      const ip = clientIp(req);
+      const key = viewer ? `${viewer.id}:search` : `anon:${ip}:search`;
+      const limit = await rateLimit("search", key, { max: 10, windowMs: 60_000 });
+      if (!limit.ok) return fail(`Search limit reached. Try again in ${limit.retryAfter}s.`, 429, "rate");
+    }
+
     const page = await loadFeed({
       viewerId: viewer?.id ?? null,
       sort: parsed.data.sort, view: parsed.data.view,

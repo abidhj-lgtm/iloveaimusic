@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { resolveSession } from "@/server/session";
 import { SUPABASE_URL } from "@/server/env";
-import { fail, ok, readSessionToken, serverError } from "@/server/http";
+import { fail, ok, readSessionToken, serverError, clientIp } from "@/server/http";
+import { rateLimit } from "@/server/ratelimit";
 import { getRepo } from "@/server/store";
 
 export const dynamic = "force-dynamic";
@@ -12,8 +13,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   try {
     const viewer = await resolveSession(readSessionToken(req));
-    const repo = getRepo();
+    const ip = clientIp(req);
     
+    // Server-side rate limit: 1 play per track per 20 seconds (mirrors client throttle)
+    const key = viewer ? `${viewer.id}:${id}` : `anon:${ip}:${id}`;
+    const limit = await rateLimit("play", key, { max: 1, windowMs: 20_000 });
+    if (!limit.ok) return ok({ success: true, throttled: true }); // Silent throttle
+    
+    const repo = getRepo();
     const track = await repo.findTrackById(id);
     if (!track || track.deleted_at || track.visibility !== "public") {
       return fail("Track not found.", 404, "notfound");

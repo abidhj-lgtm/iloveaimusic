@@ -1387,3 +1387,45 @@ textarea::-webkit-scrollbar, .comments-list::-webkit-scrollbar, .stories::-webki
 
 .og-btn.copy { background: var(--surface2); color: #f4efff; border: 1px solid var(--line); }
 .og-btn.copy:hover { background: var(--surface3); }
+
+/* ── PWA animations ─────────────────────────────────────────── */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* ── notification pagination ───────────────────────────────── */
+.notif-load-more {
+  display: block;
+  width: calc(100% - 24px);
+  margin: 8px 12px 12px;
+  padding: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.notif-load-more:hover:not(:disabled) {
+  background: var(--surface3);
+  color: #f4efff;
+}
+
+.notif-load-more:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

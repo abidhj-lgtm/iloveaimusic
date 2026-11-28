@@ -1,0 +1,40 @@
+{
+  "name": "I Love AI Music",
+  "short_name": "I Love AI",
+  "description": "Where AI music finds its listeners. A community feed for AI-generated music.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0712",
+  "theme_color": "#0a0712",
+  "categories": ["music", "entertainment"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Discover Music",
+      "short_name": "Discover",
+      "url": "/discover",
+      "description": "Browse the AI music catalog"
+    },
+    {
+      "name": "Post Music",
+      "short_name": "Post",
+      "url": "/create",
+      "description": "Create a new AI track"
+    }
+  ]
+}

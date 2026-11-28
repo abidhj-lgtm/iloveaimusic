@@ -8,6 +8,8 @@ import "./slice1.css";
 import "./ops.css";
 import { Providers } from "@/components/providers";
 import { ErrorReporter } from "@/components/error-reporter";
+import { OfflineIndicator } from "@/components/offline-indicator";
+import { PWAInstallBanner } from "@/components/pwa-install-banner";
 import { SITE, absoluteUrl, ogImageUrl, websiteJsonLd, organizationJsonLd, jsonLdScript } from "@/lib/seo";
 import { CATALOG_TRACKS, CATALOG_ARTISTS } from "@/lib/catalog";
 
@@ -58,7 +60,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ErrorReporter />
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <OfflineIndicator />
+          <PWAInstallBanner />
+        </Providers>
         <noscript>
           <div className="seo-noscript">
             <h1>{SITE.name} — {SITE.tagline}</h1>
@@ -70,6 +76,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <p><Link href="/discover">Catalog</Link> · <Link href="/faq">FAQ</Link> · <Link href="/about">About</Link> · <Link href="/legal/terms">Terms</Link> · <Link href="/legal/privacy">Privacy</Link> · <Link href="/legal/dmca">Copyright</Link></p>
           </div>
         </noscript>
+
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    console.log('[PWA] SW registered:', reg.scope);
+                  }).catch(function(err) {
+                    console.warn('[PWA] SW registration failed:', err);
+                  });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

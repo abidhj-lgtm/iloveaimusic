@@ -51,16 +51,37 @@ function NotificationBellInner() {
   const { notificationCount, refreshNotifications } = useStore();
   const [items, setItems] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const unread = notificationCount;
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (reset = true) => {
     if (!enabled) return;
     try {
-      const res = await fetch("/api/notifications?limit=20", { credentials: "same-origin", cache: "no-store" });
+      const url = reset
+        ? "/api/notifications?limit=20"
+        : `/api/notifications?cursor=${encodeURIComponent(nextCursor ?? "")}&limit=20`;
+      const res = await fetch(url, { credentials: "same-origin", cache: "no-store" });
       const data = await res.json().catch(() => ({}));
-      if (data?.ok) { setItems(data.items ?? []); setUnread(data.unread ?? 0); }
+      if (data?.ok) {
+        if (reset) {
+          setItems(data.items ?? []);
+        } else {
+          setItems((prev) => [...prev, ...(data.items ?? [])]);
+        }
+        setNextCursor(data.nextCursor ?? null);
+        setHasMore(!!data.hasMore);
+      }
     } catch { /* silent */ }
-  }, [enabled]);
+  }, [enabled, nextCursor]);
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    await load(false);
+    setLoadingMore(false);
+  };
 
   useEffect(() => {
     if (!enabled) return;
@@ -131,30 +152,42 @@ function NotificationBellInner() {
                 <p>Nothing yet. When someone loves or comments on your music, it lands here.</p>
               </div>
             ) : (
-              items.map((n) => {
-                const meta = KIND[n.kind] ?? KIND.system;
-                const { Icon } = meta;
-                return (
-                  <button key={n.id} type="button" className={`notif-item${n.readAt ? "" : " unread"}`} onClick={() => openItem(n)}>
-                    <span className="notif-avatar">
-                      {n.actor ? (
-                        <img src={avatarUrl(n.actor.name, n.actor.avatarPalette)} alt="" />
-                      ) : (
-                        <span className="notif-avatar-fallback" />
-                      )}
-                      <span className="notif-kind" style={{ color: meta.hue, borderColor: meta.hue }}><Icon size={11} /></span>
-                    </span>
-                    <span className="notif-body">
-                      <span className="notif-text">
-                        {n.actor && <strong>{n.actor.name} </strong>}
-                        {verb(n)}
+              <>
+                {items.map((n) => {
+                  const meta = KIND[n.kind] ?? KIND.system;
+                  const { Icon } = meta;
+                  return (
+                    <button key={n.id} type="button" className={`notif-item${n.readAt ? "" : " unread"}`} onClick={() => openItem(n)}>
+                      <span className="notif-avatar">
+                        {n.actor ? (
+                          <img src={avatarUrl(n.actor.name, n.actor.avatarPalette)} alt="" />
+                        ) : (
+                          <span className="notif-avatar-fallback" />
+                        )}
+                        <span className="notif-kind" style={{ color: meta.hue, borderColor: meta.hue }}><Icon size={11} /></span>
                       </span>
-                      <span className="notif-meta">{ago(n.createdAt)}</span>
-                    </span>
-                    {!n.readAt && <span className="notif-dot" aria-hidden />}
+                      <span className="notif-body">
+                        <span className="notif-text">
+                          {n.actor && <strong>{n.actor.name} </strong>}
+                          {verb(n)}
+                        </span>
+                        <span className="notif-meta">{ago(n.createdAt)}</span>
+                      </span>
+                      {!n.readAt && <span className="notif-dot" aria-hidden />}
+                    </button>
+                  );
+                })}
+                {hasMore && (
+                  <button
+                    type="button"
+                    className="notif-load-more"
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? "Loading…" : "Load more"}
                   </button>
-                );
-              })
+                )}
+              </>
             )}
           </div>
         </div>

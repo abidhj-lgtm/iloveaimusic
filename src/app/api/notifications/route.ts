@@ -1,54 +1,52 @@
 import { NextRequest } from "next/server";
-import { getRepo } from "@/server/store";
 import { resolveSession } from "@/server/session";
 import { SUPABASE_URL } from "@/server/env";
 import { fail, ok, readSessionToken, serverError } from "@/server/http";
-import { notificationsFor, unreadCount } from "@/server/store/features";
+import { getRepo } from "@/server/store";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  if (!SUPABASE_URL) return fail("Notifications need Supabase mode.", 501, "mode");
+  if (!SUPABASE_URL) return fail("Needs Supabase mode.", 501, "mode");
   const viewer = await resolveSession(readSessionToken(req));
   if (!viewer) return fail("Log in first.", 401, "unauthorized");
 
-  const limit = Math.min(50, Math.max(1, Number(req.nextUrl.searchParams.get("limit") ?? 30) || 30));
-  const offset = Math.max(0, Number(req.nextUrl.searchParams.get("offset") ?? 0) || 0);
+  const limit = Math.min(50, Math.max(1, Number(req.nextUrl.searchParams.get("limit") ?? 20) || 20));
+  const cursor = req.nextUrl.searchParams.get("cursor"); // ISO timestamp string
 
   try {
-    const rows = await notificationsFor(viewer.id, limit + 1, offset);
+    const repo = getRepo();
+    const filters: Record<string, string> = {
+      user_id: `eq.${viewer.id}`,
+      order: "created_at.desc",
+      limit: String(limit + 1) // fetch one extra to detect hasMore
+    };
+
+    if (cursor) {
+      filters["created_at"] = `lt.${cursor}`;
+    }
+
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/notifications?${new URLSearchParams(filters).toString()}`,
+      {
+        headers: {
+          apikey: process.env.SUPABASE_ANON_KEY!,
+          Authorization: `Bearer ${process.env.SUPABASE_ANON_KEY!}`
+        },
+        cache: "no-store"
+      }
+    );
+
+    if (!res.ok) throw new Error(`Failed to fetch notifications: ${res.status}`);
+    const rows = await res.json();
+
     const hasMore = rows.length > limit;
     const page = hasMore ? rows.slice(0, limit) : rows;
+    const nextCursor = hasMore && page.length > 0
+      ? page[page.length - 1].created_at
+      : null;
 
-    const repo = getRepo();
-    const actorIds = [...new Set(page.map((n) => n.actor_id).filter(Boolean))] as string[];
-    const trackIds = [...new Set(page.map((n) => n.track_id).filter(Boolean))] as string[];
-    const [actors, tracks] = await Promise.all([
-      repo.profilesByIds(actorIds),
-      repo.tracksByIds(trackIds)
-    ]);
-
-    const items = page.map((n) => {
-      const a = actors.find((p) => p.id === n.actor_id);
-      const t = tracks.find((x) => x.id === n.track_id);
-      return {
-        id: n.id,
-        kind: n.kind,
-        createdAt: n.created_at,
-        readAt: n.read_at,
-        actor: a ? { id: a.id, name: a.name, handle: a.handle, avatarPalette: a.avatar_palette } : null,
-        track: t ? { id: t.id, title: t.title } : null,
-        playlistId: n.playlist_id,
-        commentId: n.comment_id
-      };
-    });
-
-    return ok({
-      items,
-      hasMore,
-      nextOffset: hasMore ? offset + page.length : null,
-      unread: await unreadCount(viewer.id)
-    });
+    return ok({ items: page, nextCursor, hasMore });
   } catch (err) {
     return serverError(err, "Could not load notifications.");
   }
