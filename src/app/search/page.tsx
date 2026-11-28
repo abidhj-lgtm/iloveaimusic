@@ -3,8 +3,12 @@
 import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Search, X, Clock, TrendingUp, Filter } from "lucide-react";
-import { TrackCard, SkeletonCard } from "@/components/track-card";
+import { Search, X, Clock, TrendingUp, Play, Pause, Loader2, Heart } from "lucide-react";
+import { SkeletonCard, SourceBadge, useTrackThumb } from "@/components/track-card";
+import { usePlayer } from "@/lib/player";
+import { useStore } from "@/lib/store";
+import { SmartImg } from "@/components/ui";
+import { formatCount, formatDuration } from "@/lib/utils";
 import type { Track } from "@/lib/types";
 
 interface SearchResult {
@@ -47,7 +51,16 @@ function SearchInner() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
+  const [sort, setSort] = useState<"relevance" | "newest" | "plays">("relevance");
   const [showHistory, setShowHistory] = useState(false);
+
+  const buildUrl = (q: string, g: string, m: string) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (g) params.set("genre", g);
+    if (m) params.set("mood", m);
+    return `/search?${params.toString()}`;
+  };
 
   useEffect(() => {
     setHistory(loadHistory());
@@ -121,118 +134,172 @@ function SearchInner() {
   const genres = safeTags.filter((t) => !["chill", "energetic", "melancholic", "upbeat"].includes(t));
   const moods = safeTags.filter((t) => ["chill", "energetic", "melancholic", "upbeat"].includes(t));
 
+  const sortedResults = [...results].sort((a, b) => {
+    if (sort === "newest") return b.track.createdAt - a.track.createdAt;
+    if (sort === "plays") return b.track.plays - a.track.plays;
+    return 0; // relevance is default API order
+  });
+
   return (
     <div className="search-page">
-      <div className="search-header">
-        <h1 className="search-title">
-          <Search size={28} /> Advanced Search
-        </h1>
-        <form onSubmit={submitSearch} className="search-form">
-          <div className="search-input-wrap">
-            <Search size={20} className="search-input-icon" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search tracks, artists, styles…"
-              className="search-input"
-              autoFocus
-            />
-            {query && (
-              <button type="button" onClick={() => setQuery("")} className="search-clear">
-                <X size={18} />
-              </button>
-            )}
-          </div>
-          <div className="search-filters">
-            <select value={genre} onChange={(e) => setGenre(e.target.value)} className="search-select">
-              <option value="">All genres</option>
-              {genres.map((g) => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
-            <select value={mood} onChange={(e) => setMood(e.target.value)} className="search-select">
-              <option value="">All moods</option>
-              {moods.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-            <button type="submit" className="btn btn-brand">
-              <Search size={16} /> Search
+      {/* Hero Search */}
+      <div className="search-hero">
+        <h1 className="search-hero-title">What do you want to listen to?</h1>
+        <form onSubmit={submitSearch} className="search-hero-form">
+          <Search size={24} className="search-hero-icon" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search tracks, artists, styles, or prompts…"
+            className="search-hero-input"
+            autoFocus
+          />
+          {query && (
+            <button type="button" onClick={() => setQuery("")} className="search-hero-clear" aria-label="Clear search">
+              <X size={20} />
             </button>
-            {(query || genre || mood) && (
-              <button type="button" onClick={clearFilters} className="btn btn-ghost">
-                <X size={16} /> Clear
-              </button>
-            )}
-          </div>
+          )}
         </form>
       </div>
 
-      {history.length > 0 && (
-        <div className="search-history">
-          <button
-            type="button"
-            onClick={() => setShowHistory(!showHistory)}
-            className="search-history-toggle"
-          >
-            <Clock size={16} /> Recent searches ({history.length})
-          </button>
-          {showHistory && (
-            <div className="search-history-list">
-              {history.map((q) => (
-                <div key={q} className="search-history-item">
-                  <Link href={`/search?q=${encodeURIComponent(q)}`} className="search-history-link">
-                    {q}
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => removeHistoryItem(q)}
-                    className="search-history-remove"
-                    aria-label={`Remove ${q} from history`}
-                  >
-                    <X size={14} />
+      {/* Filters */}
+      {(genres.length > 0 || moods.length > 0) && (
+        <div className="search-filters-wrap">
+          {moods.length > 0 && (
+            <div className="search-filter-group">
+              <span className="search-filter-label">Vibe</span>
+              <div className="search-pills">
+                <button type="button" className={`search-pill${!mood ? " active" : ""}`} onClick={() => { setMood(""); router.push(buildUrl(query, genre, "")); }}>All</button>
+                {moods.map((m) => (
+                  <button key={m} type="button" className={`search-pill${mood === m ? " active" : ""}`} onClick={() => { const next = m === mood ? "" : m; setMood(next); router.push(buildUrl(query, genre, next)); }}>
+                    {m}
                   </button>
-                </div>
-              ))}
-              <button type="button" onClick={() => { clearHistory(); setHistory([]); }} className="search-history-clear">
-                Clear all history
-              </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {genres.length > 0 && (
+            <div className="search-filter-group">
+              <span className="search-filter-label">Genre</span>
+              <div className="search-pills">
+                <button type="button" className={`search-pill${!genre ? " active" : ""}`} onClick={() => { setGenre(""); router.push(buildUrl(query, "", mood)); }}>All</button>
+                {genres.slice(0, 14).map((g) => (
+                  <button key={g} type="button" className={`search-pill${genre === g ? " active" : ""}`} onClick={() => { const next = g === genre ? "" : g; setGenre(next); router.push(buildUrl(query, next, mood)); }}>
+                    {g}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
       )}
 
-      <div className="search-results">
-        {loading ? (
-          <div className="feed-grid">
-            {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
+      {/* Recent Searches (only show when idle) */}
+      {!query && !genre && !mood && history.length > 0 && (
+        <div className="search-history-section">
+          <div className="search-history-head">
+            <h3 className="search-history-title"><Clock size={16} /> Recent searches</h3>
+            <button type="button" onClick={() => { clearHistory(); setHistory([]); }} className="search-history-clear">Clear all</button>
           </div>
-        ) : results.length === 0 ? (
-          <div className="empty">
-            <div className="empty-icon"><Search size={30} /></div>
-            <h3>No tracks found</h3>
-            <p>Try adjusting your filters or search terms.</p>
+          <div className="search-history-chips">
+            {history.map((q) => (
+              <Link key={q} href={`/search?q=${encodeURIComponent(q)}`} className="search-history-chip">
+                <span>{q}</span>
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeHistoryItem(q); }}
+                  className="search-history-chip-x"
+                  aria-label={`Remove ${q}`}
+                >
+                  <X size={14} />
+                </button>
+              </Link>
+            ))}
           </div>
-        ) : (
-          <>
-            <div className="search-results-count">
-              {results.length} track{results.length === 1 ? "" : "s"} found
+        </div>
+      )}
+
+      {/* Results Area */}
+      {(query || genre || mood) && (
+        <div className="search-results-area">
+          <div className="search-results-head">
+            <h2 className="search-results-title">
+              {loading ? "Searching…" : sortedResults.length > 0 ? `${sortedResults.length} result${sortedResults.length === 1 ? "" : "s"}` : "No results"}
+              {query && <span className="search-results-query"> for “{query}”</span>}
+            </h2>
+            {sortedResults.length > 0 && (
+              <select value={sort} onChange={(e) => setSort(e.target.value as any)} className="search-sort" aria-label="Sort results">
+                <option value="relevance">Most Relevant</option>
+                <option value="newest">Newest First</option>
+                <option value="plays">Most Played</option>
+              </select>
+            )}
+          </div>
+
+          {loading ? (
+            <div className="search-list">
+              {Array.from({ length: 6 }).map((_, i) => <div key={i} className="search-row-skel" />)}
             </div>
-            <div className="feed-grid">
-              {results
-                .filter((r) => r && r.track && r.track.id)
-                .map((r, i) => (
-                  <TrackCard 
-                    key={r.track.id} 
-                    track={r.track} 
-                    queue={[r.track.id]} 
-                    index={i} 
-                  />
-                ))}
+          ) : sortedResults.length === 0 ? (
+            <div className="search-empty">
+              <div className="search-empty-icon"><Search size={40} /></div>
+              <h3>We couldn’t find anything for that</h3>
+              <p>Try different keywords, or check out what’s trending right now.</p>
+              <Link href="/discover" className="btn btn-brand"><TrendingUp size={16} /> Browse trending</Link>
             </div>
-          </>
-        )}
+          ) : (
+            <div className="search-list">
+              {sortedResults.map((r) => (
+                <SearchTrackRow key={r.track.id} track={r.track} queue={sortedResults.map(x => x.track.id)} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Idle State (no query, no history) */}
+      {!query && !genre && !mood && history.length === 0 && (
+        <div className="search-idle">
+          <p className="search-idle-text">Start typing to search the entire catalog, or use the filters above to explore by vibe and genre.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SearchTrackRow({ track, queue }: { track: Track; queue: string[] }) {
+  const player = usePlayer();
+  const { userById, likeCount } = useStore();
+  const { src, fallback } = useTrackThumb(track);
+  const artist = userById(track.userId);
+  const isThis = player.track?.id === track.id;
+  const isPlaying = isThis && player.playing;
+
+  return (
+    <div className={`search-row${isPlaying ? " is-playing" : ""}`}>
+      <div className="search-row-cover" onClick={() => isThis ? player.toggle() : player.playTrack(track, queue)} role="button" tabIndex={0} aria-label={isPlaying ? "Pause" : "Play"}>
+        <SmartImg src={src} fallback={fallback} alt="" className="search-row-img" />
+        <div className="search-row-play-overlay">
+          {isThis && player.buffering ? <Loader2 size={20} className="spin" /> : isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
+        </div>
+      </div>
+      <div className="search-row-info">
+        <Link href={`/track/${track.id}`} className="search-row-title">{track.title}</Link>
+        <div className="search-row-meta">
+          {artist && <Link href={`/profile/${artist.handle}`} className="search-row-artist">{artist.name}</Link>}
+          {track.stylePrompt && <span className="search-row-style">{track.stylePrompt.length > 40 ? track.stylePrompt.slice(0, 40) + '…' : track.stylePrompt}</span>}
+        </div>
+      </div>
+      <div className="search-row-stats">
+        <span className="search-row-stat"><Play size={12} fill="currentColor" /> {formatCount(track.plays)}</span>
+        <span className="search-row-stat"><Heart size={12} fill="currentColor" /> {formatCount(likeCount(track))}</span>
+      </div>
+      <div className="search-row-duration">
+        {track.duration && !track.live && formatDuration(track.duration)}
+      </div>
+      <div className="search-row-badge">
+        <SourceBadge t={track} compact />
       </div>
     </div>
   );
