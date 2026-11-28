@@ -61,7 +61,37 @@ export const trackSchema = trackBase.superRefine(refineSource);
 /** Edit: every field optional, attestation not re-sent. */
 export const trackPatchSchema = trackBase.omit({ rightsAttested: true }).partial();
 
-export const commentSchema = z.object({ text: z.string().trim().min(1, "Say something.").max(400) });
+/* ---------------- expressive comments ---------------- */
+
+export const COMMENT_MAX = 1000;
+
+/** Count what a human sees: 😂 = 1, 👨‍👩‍👧‍👦 = 1, ᕕ( ᐛ )ᕗ = 9. */
+export function graphemeCount(s: string): number {
+  try {
+    const Seg = (Intl as any).Segmenter;
+    if (Seg) return [...new Seg("en", { granularity: "grapheme" }).segment(s)].length;
+  } catch { /* older runtime */ }
+  return [...s].length;
+}
+
+/**
+ * Deliberately permissive. Keeps every script, emoji, ZWJ sequence,
+ * variation selector, skin-tone modifier, kaomoji and newline.
+ * Strips only control characters that break rendering.
+ */
+export function cleanCommentText(raw: string): string {
+  return raw
+    .replace(/\r\n?/g, "\n")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .replace(/\n{4,}/g, "\n\n\n")
+    .trim();
+}
+
+export const commentSchema = z
+  .object({ text: z.string().max(20000) })
+  .transform((v) => ({ text: cleanCommentText(v.text) }))
+  .refine((v) => v.text.length > 0, "Say something.")
+  .refine((v) => graphemeCount(v.text) <= COMMENT_MAX, `Comments cap at ${COMMENT_MAX} characters.`);
 export const toggleSchema = z.object({ on: z.boolean() });
 
 export const feedQuerySchema = z.object({
@@ -82,7 +112,7 @@ export const importSchema = z.object({
   ).max(100),
   comments: z.array(z.object({
     trackLocalId: z.string().max(80),
-    text: z.string().trim().min(1).max(400),
+    text: z.string().max(20000).transform(cleanCommentText),
     createdAt: z.number().optional()
   })).max(500).default([])
 });

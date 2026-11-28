@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
+import { commentSchema, firstIssue } from "@/server/validation";
 import { getRepo, resolveTrackId, toClientComment } from "@/server/store";
 import { resolveSession } from "@/server/session";
 import { rateLimit } from "@/server/ratelimit";
@@ -8,26 +8,22 @@ import { notify } from "@/server/store/features";
 
 export const dynamic = "force-dynamic";
 
-const schema = z
-  .object({
-    text: z.string().trim().min(1).max(1000).optional(),
-    body: z.string().trim().min(1).max(1000).optional()
-  })
-  .refine((v) => !!(v.text || v.body), "Write something first.");
-
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!sameOrigin(req)) return fail("Blocked cross-site request.", 403, "csrf");
   const { id } = await params;
 
   const viewer = await resolveSession(readSessionToken(req));
   if (!viewer) return fail("Log in to join the conversation.", 401, "unauthorized");
+  if ((viewer as any).suspended_at) {
+    return fail("This account is suspended. Contact moderation to appeal.", 403, "suspended");
+  }
 
   const limit = await rateLimit("comment", viewer.id);
   if (!limit.ok) return fail(`Comment limit reached. Try again in ${limit.retryAfter}s.`, 429, "rate");
 
-  const parsed = schema.safeParse(await readBody(req));
-  if (!parsed.success) return fail("Write something first.", 400, "validation");
-  const text = (parsed.data.text ?? parsed.data.body)!.trim();
+  const parsed = commentSchema.safeParse(await readBody(req));
+  if (!parsed.success) return fail(firstIssue(parsed.error), 400, "validation");
+  const text = parsed.data.text;
 
   try {
     const repo = getRepo();
@@ -46,7 +42,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     let row: any = inserted && (inserted as any).id ? inserted : null;
     if (!row) {
       const rows = await repo.commentsForTracks([realTrackId]);
-      row = [...rows].reverse().find((c) => c.user_id === viewer.id) ?? null;
+      const mine = [...rows].reverse().filter((c) => c.user_id === viewer.id);
+      row = mine.find((c) => c.text === text) ?? mine[0] ?? null;
     }
     if (!row) return fail("That comment did not save. Try again.", 500, "persist");
 
