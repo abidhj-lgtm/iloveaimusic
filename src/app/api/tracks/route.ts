@@ -16,11 +16,11 @@ export async function GET(req: NextRequest) {
   try {
     const viewer = await resolveSession(readSessionToken(req));
     
-    // Rate limit search queries specifically (10 per minute)
+    // Rate limit search queries specifically
     if (parsed.data.q && parsed.data.q.trim()) {
       const ip = clientIp(req);
-      const key = viewer ? `${viewer.id}:search` : `anon:${ip}:search`;
-      const limit = await rateLimit("search", key, { max: 10, windowMs: 60_000 });
+      const identity = viewer ? viewer.id : `anon:${ip}`;
+      const limit = await rateLimit("search", identity);
       if (!limit.ok) return fail(`Search limit reached. Try again in ${limit.retryAfter}s.`, 429, "rate");
     }
 

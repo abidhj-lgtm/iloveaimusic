@@ -13,11 +13,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   try {
     const viewer = await resolveSession(readSessionToken(req));
+    // Server-side rate limit for plays
     const ip = clientIp(req);
-    
-    // Server-side rate limit: 1 play per track per 20 seconds (mirrors client throttle)
-    const key = viewer ? `${viewer.id}:${id}` : `anon:${ip}:${id}`;
-    const limit = await rateLimit("play", key, { max: 1, windowMs: 20_000 });
+    const identity = viewer ? viewer.id : `anon:${ip}`;
+    const limit = await rateLimit("play", identity);
     if (!limit.ok) return ok({ success: true, throttled: true }); // Silent throttle
     
     const repo = getRepo();

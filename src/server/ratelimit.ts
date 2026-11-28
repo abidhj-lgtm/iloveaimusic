@@ -19,7 +19,8 @@ export const LIMITS = {
   comment: { max: 40, windowMs: 10 * 60_000 },
   react: { max: 300, windowMs: 5 * 60_000 },
   play: { max: 400, windowMs: 10 * 60_000 },
-  import: { max: 4, windowMs: 30 * 60_000 }
+  import: { max: 4, windowMs: 30 * 60_000 },
+  search: { max: 15, windowMs: 60_000 }
 } as const;
 
 export type LimitName = keyof typeof LIMITS;

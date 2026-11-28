@@ -22,8 +22,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const viewer = await resolveSession(readSessionToken(req));
   if (!viewer) return fail("Log in first.", 401, "unauthorized");
 
-  const ip = clientIp(req);
-  const limit = await rateLimit("comment", `${viewer.id}:${ip}`, { max: 5, windowMs: 60_000 });
+  const limit = await rateLimit("comment", viewer.id);
   if (!limit.ok) return fail(`Comment limit reached. Try again in ${limit.retryAfter}s.`, 429, "rate");
 
   const parsed = schema.safeParse(await readBody(req));
