@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./admin.css";
 
 export const metadata: Metadata = {
-  title: "Console",
-  description: "Staff console for I Love AI Music.",
+  title: "Backstage",
+  description: "Staff backstage for I Love AI Music.",
   robots: { index: false, follow: false, googleBot: { index: false, follow: false } }
 };
 

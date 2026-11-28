@@ -669,6 +669,7 @@ function SystemTab() {
           <p className="adm-sub">Broadcast to every creator, prune old notifications, and watch the database.</p>
         </div>
         <div className="adm-head-right">
+          <button className="adm-btn" onClick={() => setTab("overview")}><ArrowLeft size={14} /> Back to overview</button>
           <button className="adm-btn" onClick={loadHealth}><RefreshCw size={14} /> Re-check</button>
         </div>
       </div>
@@ -1103,7 +1104,7 @@ export default function AdminConsole() {
       <header className="adm-bar">
         <Link href="/" className="adm-brand" aria-label="Back to I Love AI Music">
           <span className="adm-brand-mark"><Shield size={17} color="#fff" /></span>
-          <span className="adm-brand-txt"><strong>I Love AI Music</strong><em>Console</em></span>
+          <span className="adm-brand-txt"><strong>I Love AI Music</strong><em>Backstage</em></span>
         </Link>
 
         <form className="adm-search" onSubmit={submitGlobal}>
@@ -1296,6 +1297,7 @@ export default function AdminConsole() {
                 <p className="adm-sub">Every account, their catalog, and their standing. Click a row for the full drill-down.</p>
               </div>
               <div className="adm-head-right">
+                <button className="adm-btn" onClick={() => setTab("overview")}><ArrowLeft size={14} /> Back to overview</button>
                 <ViewsMenu tab="creators" current={{ q: cQ, filter: cFilter, sort: cSort }} onApply={applyView} />
                 <button className="adm-btn" onClick={() => loadCreators()} disabled={cLoading}><RefreshCw size={14} className={cLoading ? "adm-spin" : ""} /> Refresh</button>
               </div>
@@ -1403,6 +1405,7 @@ export default function AdminConsole() {
                 <p className="adm-sub">Hide, publish, delete and restore. Every action is reversible from the toast.</p>
               </div>
               <div className="adm-head-right">
+                <button className="adm-btn" onClick={() => setTab("overview")}><ArrowLeft size={14} /> Back to overview</button>
                 <ViewsMenu tab="tracks" current={{ q: tQ, filter: tFilter, sort: tSort, source: tSource }} onApply={applyView} />
                 <button className="adm-btn" onClick={() => loadTracks()} disabled={tLoading}><RefreshCw size={14} className={tLoading ? "adm-spin" : ""} /> Refresh</button>
               </div>
@@ -1528,6 +1531,7 @@ export default function AdminConsole() {
                 <p className="adm-sub">Community flags for copyright, abuse, and policy problems.</p>
               </div>
               <div className="adm-head-right">
+                <button className="adm-btn" onClick={() => setTab("overview")}><ArrowLeft size={14} /> Back to overview</button>
                 <Link className="adm-btn" href="/legal/dmca" target="_blank"><Flag size={14} /> Takedown policy</Link>
                 <button className="adm-btn" onClick={loadReports} disabled={rLoading}><RefreshCw size={14} className={rLoading ? "adm-spin" : ""} /> Refresh</button>
               </div>
