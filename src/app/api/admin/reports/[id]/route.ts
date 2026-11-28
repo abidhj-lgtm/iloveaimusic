@@ -32,13 +32,14 @@ const actionSchema = z.object({
   notes: z.string().optional()
 });
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const viewer = await resolveSession(readSessionToken(req));
     const { profile } = await adminIdentity(viewer?.id ?? null);
     if (!profile) return fail("Admin access required.", 403, "forbidden");
 
-    const report = await getReport(params.id);
+    const report = await getReport(id);
     if (!report) return fail("Report not found.", 404, "notfound");
 
     return ok({ report });
@@ -47,8 +48,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const viewer = await resolveSession(readSessionToken(req));
     const { profile } = await adminIdentity(viewer?.id ?? null);
     if (!profile) return fail("Admin access required.", 403, "forbidden");
@@ -58,7 +60,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const parsed = actionSchema.safeParse(body);
     if (!parsed.success) return fail("Invalid action.", 400, "validation");
 
-    const report = await getReport(params.id);
+    const report = await getReport(id);
     if (!report) return fail("Report not found.", 404, "notfound");
 
     const { action, notes } = parsed.data;
@@ -66,37 +68,37 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     // Handle status updates
     if (action === "dismiss") {
-      await updateReportStatus(params.id, "dismissed", moderatorId, notes);
+      await updateReportStatus(id, "dismissed", moderatorId, notes);
       return ok({ action: "dismissed" });
     }
     if (action === "investigate") {
-      await updateReportStatus(params.id, "investigating", moderatorId);
+      await updateReportStatus(id, "investigating", moderatorId);
       return ok({ action: "investigating" });
     }
     if (action === "resolve") {
-      await updateReportStatus(params.id, "resolved", moderatorId, notes);
+      await updateReportStatus(id, "resolved", moderatorId, notes);
       return ok({ action: "resolved" });
     }
 
     // Handle content actions
     if (action === "hide_track" && report.track_id) {
       await hideTrack(report.track_id, moderatorId);
-      await updateReportStatus(params.id, "resolved", moderatorId, notes ?? "Track hidden");
+      await updateReportStatus(id, "resolved", moderatorId, notes ?? "Track hidden");
       return ok({ action: "track_hidden" });
     }
     if (action === "delete_track" && report.track_id) {
       await deleteTrack(report.track_id, moderatorId);
-      await updateReportStatus(params.id, "resolved", moderatorId, notes ?? "Track deleted");
+      await updateReportStatus(id, "resolved", moderatorId, notes ?? "Track deleted");
       return ok({ action: "track_deleted" });
     }
     if (action === "hide_comment" && report.comment_id) {
       await hideComment(report.comment_id, moderatorId);
-      await updateReportStatus(params.id, "resolved", moderatorId, notes ?? "Comment hidden");
+      await updateReportStatus(id, "resolved", moderatorId, notes ?? "Comment hidden");
       return ok({ action: "comment_hidden" });
     }
     if (action === "delete_comment" && report.comment_id) {
       await deleteComment(report.comment_id, moderatorId);
-      await updateReportStatus(params.id, "resolved", moderatorId, notes ?? "Comment deleted");
+      await updateReportStatus(id, "resolved", moderatorId, notes ?? "Comment deleted");
       return ok({ action: "comment_deleted" });
     }
 
@@ -105,14 +107,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       const targetUserId = report.track?.user_id ?? report.comment?.user_id;
       if (!targetUserId) return fail("No user to suspend.", 400, "validation");
       await suspendUser(targetUserId, moderatorId, notes ?? "Suspended for policy violation");
-      await updateReportStatus(params.id, "resolved", moderatorId, notes ?? "User suspended");
+      await updateReportStatus(id, "resolved", moderatorId, notes ?? "User suspended");
       return ok({ action: "user_suspended" });
     }
     if (action === "unsuspend_user") {
       const targetUserId = report.track?.user_id ?? report.comment?.user_id;
       if (!targetUserId) return fail("No user to unsuspend.", 400, "validation");
       await unsuspendUser(targetUserId);
-      await updateReportStatus(params.id, "resolved", moderatorId, notes ?? "User unsuspended");
+      await updateReportStatus(id, "resolved", moderatorId, notes ?? "User unsuspended");
       return ok({ action: "user_unsuspended" });
     }
 

@@ -955,13 +955,27 @@ function ReportDetailDrawer({ reportId, onClose, onAction }: { reportId: string;
     setBusy("");
   };
 
-  if (loading || !report) {
+  if (loading) {
     return (
       <>
         <div className="adm-scrim" onMouseDown={onClose} />
         <aside className="adm-drawer">
           <div className="adm-drawer-head"><h3>Loading report…</h3><button className="adm-icon" onClick={onClose}><X size={16} /></button></div>
           <div className="adm-drawer-body"><SkelRows n={4} /></div>
+        </aside>
+      </>
+    );
+  }
+
+  if (!report) {
+    return (
+      <>
+        <div className="adm-scrim" onMouseDown={onClose} />
+        <aside className="adm-drawer">
+          <div className="adm-drawer-head"><h3>Report not found</h3><button className="adm-icon" onClick={onClose}><X size={16} /></button></div>
+          <div className="adm-drawer-body">
+            <Empty icon={<AlertTriangle size={24} />} title="Could not load report" body="The report may have been deleted or you lack permission." actions={<button className="adm-btn primary" onClick={onClose}>Close</button>} />
+          </div>
         </aside>
       </>
     );
