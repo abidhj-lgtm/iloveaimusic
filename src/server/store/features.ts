@@ -251,13 +251,61 @@ export async function tagsForTracks(trackIds: string[]): Promise<{ track_id: str
 }
 
 export async function setTrackTags(trackId: string, tags: string[]): Promise<void> {
-  await call("track_tags", "DELETE", { filters: { track_id: eq(trackId) } });
+  // Only delete manual tags — preserve auto-tags
+  await call("track_tags", "DELETE", { filters: { track_id: eq(trackId), source: eq("manual") } });
   const clean = [...new Set(tags.map((t) => t.trim().toLowerCase()).filter((t) => t.length > 0 && t.length <= 40))].slice(0, 12);
   if (!clean.length) return;
-  await call("track_tags", "POST", {}, clean.map((tag) => ({ track_id: trackId, tag })));
+  await call("track_tags", "POST", {}, clean.map((tag) => ({ track_id: trackId, tag, source: "manual" })));
 }
 
-/* ---------------- analytics ---------------- */
+/** Add tags with a specific source. Skips duplicates via unique constraint. */
+export async function addTagsWithSource(
+  trackId: string,
+  tags: string[],
+  source: "manual" | "auto"
+): Promise<void> {
+  const clean = [...new Set(tags.map((t) => t.trim().toLowerCase()).filter((t) => t.length > 0 && t.length <= 40))].slice(0, 20);
+  if (!clean.length) return;
+  try {
+    await call("track_tags", "POST", {}, clean.map((tag) => ({ track_id: trackId, tag, source })));
+  } catch (err) {
+    // Unique constraint violation is OK — tag already exists
+    if (String(err).includes("unique") || String(err).includes("duplicate")) return;
+    throw err;
+  }
+}
+
+/** Delete all tags with a specific source for a track. */
+export async function deleteTagsBySource(
+  trackId: string,
+  source: "manual" | "auto"
+): Promise<void> {
+  await call("track_tags", "DELETE", { filters: { track_id: eq(trackId), source: eq(source) } });
+}
+
+/** Get tag counts + first-seen timestamp across all tracks (for graduation + "NEW" badge). */
+export async function getTagCounts(): Promise<{ tag: string; count: number; firstSeenAt: number }[]> {
+  const rows = await call("track_tags", "GET", {
+    select: "tag,track_id,created_at",
+    limit: 10000
+  }) as { tag: string; track_id: string; created_at: string }[];
+
+  const counts = new Map<string, { tracks: Set<string>; firstSeen: number }>();
+  for (const r of rows) {
+    if (!r.tag || !r.track_id) continue;
+    const entry = counts.get(r.tag) ?? { tracks: new Set(), firstSeen: Infinity };
+    entry.tracks.add(r.track_id);
+    const ts = Date.parse(r.created_at);
+    if (Number.isFinite(ts) && ts < entry.firstSeen) entry.firstSeen = ts;
+    counts.set(r.tag, entry);
+  }
+
+  return [...counts.entries()].map(([tag, data]) => ({
+    tag,
+    count: data.tracks.size,
+    firstSeenAt: data.firstSeen === Infinity ? 0 : data.firstSeen
+  }));
+}
 
 /* ---------------- analytics time-series ---------------- */
 

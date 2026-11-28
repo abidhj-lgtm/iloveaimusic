@@ -129,6 +129,16 @@ export async function createTrackForUser(ownerRowId: string, input: {
     lyrics: input.instrumental ? "" : input.lyrics, instrumental: input.instrumental, duration: input.duration ?? null
   });
   await repo.audit(ownerRowId, "track.create", row.id, { title: row.title, source: row.source }, ip);
+
+  // Auto-tag the track based on prompt and background
+  try {
+    const { autoTagTrack } = await import("@/server/tagging");
+    await autoTagTrack(row.id, input.stylePrompt, input.background);
+  } catch (err) {
+    // Auto-tagging failure should not break track creation
+    reportError(err, { route: "content:createTrack:autoTag", trackId: row.id });
+  }
+
   const owner = await repo.findProfileById(ownerRowId);
   return { track: toClientTrack(row, owner ? publicId(owner) : ownerRowId, 0, false), comments: [], likedByMe: false, savedByMe: false };
 }
