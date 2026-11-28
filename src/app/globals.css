@@ -1580,3 +1580,41 @@ textarea::-webkit-scrollbar, .comments-list::-webkit-scrollbar, .stories::-webki
   .emoji-grid { grid-template-columns: repeat(7, 1fr); }
   .comment-emoji-only { font-size: 1.8rem; }
 }
+
+/* ── Traffic analytics cards ───────────────────────────────── */
+.an-card.an-views {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(236, 72, 153, 0.08));
+  border-color: rgba(139, 92, 246, 0.28);
+  color: #c4b5fd;
+}
+
+.an-card.an-unique {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.12), rgba(59, 130, 246, 0.08));
+  border-color: rgba(34, 211, 238, 0.28);
+  color: #67e8f9;
+}
+
+.an-card.an-conversion {
+  background: linear-gradient(135deg, rgba(163, 230, 53, 0.12), rgba(52, 211, 153, 0.08));
+  border-color: rgba(163, 230, 53, 0.28);
+  color: #bef264;
+}
+
+/* ── Traffic chart bars ────────────────────────────────────── */
+.an-bar.an-bar-traffic {
+  background: linear-gradient(180deg, #8b5cf6, #ec4899);
+}
+
+/* ── Conversion badge in top tracks ────────────────────────── */
+.an-conversion-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: rgba(163, 230, 53, 0.15);
+  color: #bef264;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 4px;
+}

@@ -1,39 +1,48 @@
 import { NextRequest } from "next/server";
-import { getRepo, resolveTrackId } from "@/server/store";
 import { resolveSession } from "@/server/session";
-import { SUPABASE_URL } from "@/server/env";
-import { fail, ok, readSessionToken, serverError } from "@/server/http";
-import { trackSeries } from "@/server/store/features";
+import { fail, ok, serverError, readSessionToken } from "@/server/http";
+import { getRepo } from "@/server/store";
+import { getStatsRange } from "@/server/analytics";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!SUPABASE_URL) return fail("Analytics need Supabase mode.", 501, "mode");
-  const { id } = await params;
-
-  const viewer = await resolveSession(readSessionToken(req));
-  if (!viewer) return fail("Log in first.", 401, "unauthorized");
-
-  const days = Math.min(90, Math.max(7, Number(req.nextUrl.searchParams.get("days") ?? 30) || 30));
-
   try {
-    const repo = getRepo();
-    const realId = await resolveTrackId(id);
-    const track = realId ? await repo.findTrackById(realId) : null;
-    if (!track || track.deleted_at) return fail("Track not found.", 404, "notfound");
-    if (track.user_id !== viewer.id) return fail("Only the creator can see track analytics.", 403, "forbidden");
+    const { id } = await params;
+    const viewer = await resolveSession(readSessionToken(req));
+    if (!viewer) return fail("Authentication required.", 401, "unauthorized");
 
-    const series = await trackSeries(realId!, days);
+    const repo = getRepo();
+    const track = await repo.findTrackById(id);
+    if (!track) return fail("Track not found.", 404, "notfound");
+
+    // Enforce privacy: only the owner or an admin can view analytics
+    const isAdmin = viewer.role === "admin" || viewer.role === "moderator";
+    if (track.user_id !== viewer.id && !isAdmin) {
+      return fail("You can only view analytics for your own tracks.", 403, "forbidden");
+    }
+
+    // Get last 30 days of data
+    const to = new Date();
+    const from = new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const stats = await getStatsRange("track", id, from, to, "daily");
+
+    const totalViews = stats.reduce((sum, r) => sum + Number(r.total_views), 0);
+    const uniqueVisitors = stats.reduce((sum, r) => sum + Number(r.unique_visitors), 0);
+    const plays = track.plays; // Plays are tracked separately in the tracks table
+
     return ok({
-      track: {
-        id: track.id,
-        title: track.title,
-        plays: track.plays,
-        likeCount: track.like_count,
-        commentCount: track.comment_count
+      summary: {
+        totalViews,
+        uniqueVisitors,
+        plays,
+        conversionRate: uniqueVisitors > 0 ? (plays / uniqueVisitors).toFixed(2) : "0.00"
       },
-      series,
-      days
+      trend: stats.map((s) => ({
+        date: new Date(s.period).toISOString().split("T")[0],
+        views: Number(s.total_views),
+        plays: Number(s.plays)
+      }))
     });
   } catch (err) {
     return serverError(err, "Could not load track analytics.");
