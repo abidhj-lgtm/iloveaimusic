@@ -75,12 +75,83 @@ export async function listReports(opts: {
 }
 
 export async function getReport(id: string): Promise<ReportWithContent | null> {
+  // Fetch the report itself
   const params = new URLSearchParams();
-  params.set("select", "*,track:tracks(*),comment:comments(*),reporter:profiles!reports_reporter_id_fkey(*),assigned:profiles!reports_assigned_to_fkey(*)");
+  params.set("select", "*");
   params.set("id", eq(id));
   params.set("limit", "1");
   const rows = await req("reports", "GET", params);
-  return rows[0] ?? null;
+  const report = rows[0];
+  if (!report) return null;
+
+  const result: ReportWithContent = { ...report };
+
+  // Fetch related track if track_id exists
+  if (report.track_id) {
+    try {
+      const trackParams = new URLSearchParams();
+      trackParams.set("select", "id,title,user_id,cover_seed,cover_palette,source");
+      trackParams.set("id", eq(report.track_id));
+      trackParams.set("limit", "1");
+      const trackRows = await req("tracks", "GET", trackParams);
+      if (trackRows[0]) {
+        result.track = trackRows[0];
+        // Fetch artist name
+        if (trackRows[0].user_id) {
+          const artistParams = new URLSearchParams();
+          artistParams.set("select", "name,handle");
+          artistParams.set("id", eq(trackRows[0].user_id));
+          artistParams.set("limit", "1");
+          const artistRows = await req("profiles", "GET", artistParams);
+          if (artistRows[0]) {
+            result.track.artist_name = artistRows[0].name;
+            result.track.artist_handle = artistRows[0].handle;
+          }
+        }
+      }
+    } catch { /* track fetch failed, continue without it */ }
+  }
+
+  // Fetch related comment if comment_id exists
+  if (report.comment_id) {
+    try {
+      const commentParams = new URLSearchParams();
+      commentParams.set("select", "id,text,user_id");
+      commentParams.set("id", eq(report.comment_id));
+      commentParams.set("limit", "1");
+      const commentRows = await req("comments", "GET", commentParams);
+      if (commentRows[0]) {
+        result.comment = commentRows[0];
+        // Fetch commenter name
+        if (commentRows[0].user_id) {
+          const commenterParams = new URLSearchParams();
+          commenterParams.set("select", "name");
+          commenterParams.set("id", eq(commentRows[0].user_id));
+          commenterParams.set("limit", "1");
+          const commenterRows = await req("profiles", "GET", commenterParams);
+          if (commenterRows[0]) {
+            result.comment.user_name = commenterRows[0].name;
+          }
+        }
+      }
+    } catch { /* comment fetch failed, continue without it */ }
+  }
+
+  // Fetch reporter if reporter_id exists
+  if (report.reporter_id) {
+    try {
+      const reporterParams = new URLSearchParams();
+      reporterParams.set("select", "name,handle");
+      reporterParams.set("id", eq(report.reporter_id));
+      reporterParams.set("limit", "1");
+      const reporterRows = await req("profiles", "GET", reporterParams);
+      if (reporterRows[0]) {
+        result.reporter = reporterRows[0];
+      }
+    } catch { /* reporter fetch failed, continue without it */ }
+  }
+
+  return result;
 }
 
 export async function updateReportStatus(
