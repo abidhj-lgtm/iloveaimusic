@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Heart, MessageCircle, Share2, Bookmark, Play, Pause, MoreHorizontal, Pencil, Trash2,
-  Link2, Youtube, Upload, Wand2, Loader2, Send, X, Music2, Disc3, Headphones, Flag
+  Link2, Youtube, Upload, Wand2, Loader2, Send, X, Music2, Disc3, Headphones, Flag, Smile
 } from "lucide-react";
 import type { Track } from "@/lib/types";
 import { useStore, useToast } from "@/lib/store";
@@ -23,6 +23,156 @@ export function useTrackThumb(t: Track): { src: string; fallback: string } {
   const fallback = coverUrl(t.coverSeed, t.coverPalette);
   const src = t.source === "youtube" && t.youtubeId ? ytThumb(t.youtubeId) : (media ?? fallback);
   return { src, fallback };
+}
+
+/* ---------------- expressive comment kit ---------------- */
+
+const COMMENT_MAX = 1000;
+const RECENT_KEY = "iloveai:emoji:recent";
+
+const EMOJI_SETS: { id: string; label: string; items: string[] }[] = [
+  { id: "faces", label: "😂 Faces", items: ["😂","🥹","😍","🤩","😭","🔥","👀","💀","🤯","🥲","😌","🤔","😅","😊","🙃","😴","🤤","😳","🥺","😤","🫠","😮‍💨","🤪","😎"] },
+  { id: "hearts", label: "💜 Hearts", items: ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","💖","💗","💓","💞","💕","❣️","💘","💝","♥️","💟","🩷","🩵","🫶","💌"] },
+  { id: "music", label: "🎧 Music", items: ["🎵","🎶","🎧","🎤","🎸","🎹","🥁","🎺","🎷","🎻","🪕","📻","🔊","🎼","🎚️","🎛️","🪩","🕺","💃","🎙️","🔁","⏯️"] },
+  { id: "hype", label: "🔥 Hype", items: ["🔥","✨","⚡","💫","🌟","⭐","🎉","🎊","🚀","💯","👑","🏆","🥇","💎","🌈","☄️","🫧","🪄","🧨","🎯","📈","🆙"] },
+  { id: "hands", label: "👏 Hands", items: ["👏","🙌","🤝","👍","🤙","✌️","🤞","👌","🫶","🫰","💪","🙏","👋","🤟","✋","🖐️","👐","🫡","🤌","🖖","🫵","🤲"] },
+  { id: "vibes", label: "🌙 Vibes", items: ["🌙","☀️","🌊","🍃","🌸","🌺","🍀","🌵","🌴","🌌","🪐","❄️","🌁","🏙️","🌃","🌆","🕯️","🫖","🍜","🛸","🧿","🪷"] }
+];
+
+const EMOJI_NAMES: Record<string, string> = {
+  "😂": "joy laugh funny lol", "🥹": "holding back tears moved", "😍": "heart eyes love",
+  "🤩": "star struck amazed", "😭": "sob crying loud", "🔥": "fire hot lit",
+  "👀": "eyes look watching", "💀": "skull dead dying", "🤯": "mind blown exploding head",
+  "🥲": "happy tear grateful", "😌": "relieved calm", "🤔": "thinking hmm",
+  "😅": "sweat smile nervous", "😊": "blush smile happy", "🙃": "upside down silly",
+  "😴": "sleeping tired", "🤤": "drool want", "😳": "flushed shocked",
+  "🥺": "pleading puppy eyes", "😤": "triumph determined", "🫠": "melting",
+  "😮‍💨": "exhale relief", "🤪": "zany crazy", "😎": "cool sunglasses",
+  "❤️": "red heart love", "🧡": "orange heart", "💛": "yellow heart", "💚": "green heart",
+  "💙": "blue heart", "💜": "purple heart", "🖤": "black heart", "🤍": "white heart",
+  "💖": "sparkling heart", "💗": "growing heart", "💓": "beating heart",
+  "💞": "revolving hearts", "💕": "two hearts", "❣️": "heart exclamation",
+  "💘": "cupid arrow heart", "💝": "heart gift", "♥️": "heart suit",
+  "💟": "heart decoration", "🩷": "pink heart", "🩵": "light blue heart",
+  "🫶": "heart hands love", "💌": "love letter",
+  "🎵": "music note", "🎶": "notes music", "🎧": "headphones listen",
+  "🎤": "microphone sing", "🎸": "guitar rock", "🎹": "piano keys",
+  "🥁": "drum beat", "🎺": "trumpet horn", "🎷": "saxophone jazz",
+  "🎻": "violin strings", "🪕": "banjo", "📻": "radio", "🔊": "speaker loud volume",
+  "🎼": "score sheet music", "🎚️": "level slider mix", "🎛️": "knobs studio",
+  "🪩": "mirror ball disco", "🕺": "man dancing", "💃": "dancer dance",
+  "🎙️": "studio mic podcast", "🔁": "repeat loop", "⏯️": "play pause",
+  "✨": "sparkles shine", "⚡": "zap lightning energy", "💫": "dizzy stars",
+  "🌟": "glowing star", "⭐": "star favourite", "🎉": "tada party celebrate",
+  "🎊": "confetti party", "🚀": "rocket launch", "💯": "hundred perfect",
+  "👑": "crown king queen", "🏆": "trophy winner", "🥇": "gold medal first",
+  "💎": "gem diamond", "🌈": "rainbow", "☄️": "comet", "🫧": "bubbles",
+  "🪄": "magic wand", "🧨": "firecracker", "🎯": "dart target bullseye",
+  "📈": "chart up trending", "🆙": "up button",
+  "👏": "clap applause", "🙌": "raised hands praise", "🤝": "handshake deal",
+  "👍": "thumbs up like", "🤙": "call me hang loose", "✌️": "peace victory",
+  "🤞": "crossed fingers luck", "👌": "ok perfect", "🫰": "pinched fingers",
+  "💪": "muscle strong", "🙏": "pray thanks please", "👋": "wave hello",
+  "🤟": "love you gesture", "✋": "raised hand stop", "🖐️": "splayed hand",
+  "👐": "open hands", "🫡": "salute respect", "🤌": "pinched italian",
+  "🖖": "vulcan spock", "🫵": "pointing at you", "🤲": "palms up",
+  "🌙": "moon night", "☀️": "sun sunny", "🌊": "wave ocean sea",
+  "🍃": "leaf breeze", "🌸": "cherry blossom spring", "🌺": "hibiscus flower",
+  "🍀": "clover luck", "🌵": "cactus desert", "🌴": "palm tree",
+  "🌌": "milky way galaxy space", "🪐": "planet saturn", "❄️": "snowflake cold",
+  "🌁": "foggy mist", "🏙️": "cityscape skyline", "🌃": "night stars city",
+  "🌆": "city sunset dusk", "🕯️": "candle calm", "🫖": "teapot tea",
+  "🍜": "noodles ramen", "🛸": "ufo alien", "🧿": "evil eye", "🪷": "lotus"
+};
+
+const EMOTICON_HINTS: [string, string][] = [
+  [":-)", "🙂"], [":)", "🙂"], ["(:", "🙂"], [":-D", "😄"], [":D", "😄"],
+  [":-(", "🙁"], [":(", "🙁"], [":'(", "😢"], [";-)", "😉"], [";)", "😉"],
+  [":-P", "😛"], [":P", "😛"], [":p", "😛"], [":-O", "😮"], [":O", "😮"],
+  [":-/", "😕"], [":/", "😕"], [":-*", "😘"], [":*", "😘"],
+  ["B)", "😎"], ["8)", "😎"], ["<3", "❤️"], ["</3", "💔"],
+  ["^_^", "😊"], ["T_T", "😭"], [">_<", "😣"], ["xD", "😆"], ["XD", "😆"]
+].sort((a, b) => b[0].length - a[0].length);
+
+const WORD_HINTS: Record<string, string[]> = {
+  fire: ["🔥"], lit: ["🔥"], heat: ["🔥"], banger: ["🔥", "💯"],
+  love: ["❤️", "😍"], heart: ["❤️", "💜"], hearts: ["💕", "💖"],
+  lol: ["😂"], haha: ["😂"], funny: ["😂"], dead: ["💀"], dying: ["💀"],
+  cry: ["😭"], crying: ["😭"], sob: ["😭"], tears: ["🥹", "😭"],
+  wow: ["🤯", "😮"], amazing: ["🤩", "✨"], crazy: ["🤯", "🤪"],
+  clap: ["👏"], applause: ["👏"], bravo: ["👏", "🙌"],
+  thanks: ["🙏", "💜"], thank: ["🙏"], please: ["🥺", "🙏"],
+  perfect: ["💯", "👌"], hundred: ["💯"], best: ["🏆", "👑"],
+  king: ["👑"], queen: ["👑"], goat: ["🐐", "👑"],
+  party: ["🎉", "🪩"], celebrate: ["🎉", "🎊"], congrats: ["🎉", "🏆"],
+  dance: ["💃", "🕺"], dancing: ["💃", "🕺"], disco: ["🪩"],
+  music: ["🎵", "🎶"], song: ["🎵"], beat: ["🥁", "🔥"],
+  guitar: ["🎸"], piano: ["🎹"], drums: ["🥁"], sing: ["🎤"],
+  headphones: ["🎧"], listen: ["🎧"], repeat: ["🔁"],
+  star: ["⭐", "🌟"], shine: ["✨"], sparkle: ["✨"], magic: ["🪄"],
+  rocket: ["🚀"], launch: ["🚀"], fast: ["⚡"], energy: ["⚡"],
+  strong: ["💪"], respect: ["🫡", "🙏"], salute: ["🫡"],
+  wave: ["👋"], hello: ["👋"], hey: ["👋"],
+  yes: ["🙌", "👍"], no: ["🙅"], ok: ["👌"], cool: ["😎"],
+  moon: ["🌙"], night: ["🌃", "🌙"], sun: ["☀️"], summer: ["☀️", "🌴"],
+  ocean: ["🌊"], sea: ["🌊"], chill: ["😌", "🍃"], calm: ["😌", "🕯️"],
+  rain: ["🌧️"], snow: ["❄️"], cold: ["❄️"], flower: ["🌸", "🌺"],
+  space: ["🌌", "🪐"], galaxy: ["🌌"], rainbow: ["🌈"],
+  coffee: ["☕"], tea: ["🫖"], noodles: ["🍜"], sleep: ["😴"], tired: ["😴"]
+};
+
+interface Sug { emoji: string; label: string }
+interface SugResult { token: string; items: Sug[] }
+
+function computeSuggestions(text: string): SugResult | null {
+  const short = /:([a-z0-9_]{2,20})$/i.exec(text);
+  if (short) {
+    const q = short[1].toLowerCase();
+    const hits = Object.entries(EMOJI_NAMES)
+      .filter(([, n]) => n.split(" ").some((w) => w.startsWith(q)))
+      .slice(0, 6)
+      .map(([emoji, n]) => ({ emoji, label: n.split(" ")[0] }));
+    if (hits.length) return { token: short[0], items: hits };
+  }
+  for (const [token, emoji] of EMOTICON_HINTS) {
+    if (!text.endsWith(token)) continue;
+    const before = text.slice(0, text.length - token.length);
+    if (before && !/\s$/.test(before)) continue;
+    return { token, items: [{ emoji, label: token }] };
+  }
+  const word = /(?:^|\s)([a-z]{2,14})$/i.exec(text);
+  if (word) {
+    const hits = WORD_HINTS[word[1].toLowerCase()];
+    if (hits?.length) return { token: word[1], items: hits.map((e) => ({ emoji: e, label: word[1] })) };
+  }
+  return null;
+}
+
+function loadRecent(): string[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]").slice(0, 24); } catch { return []; }
+}
+function pushRecent(emoji: string): string[] {
+  const next = [emoji, ...loadRecent().filter((e) => e !== emoji)].slice(0, 24);
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* quota */ }
+  return next;
+}
+
+function visualLength(s: string): number {
+  try {
+    const Seg = (Intl as any).Segmenter;
+    if (Seg) return [...new Seg("en", { granularity: "grapheme" }).segment(s)].length;
+  } catch { /* older browser */ }
+  return [...s].length;
+}
+
+function isEmojiOnly(s: string): boolean {
+  const t = s.trim();
+  if (!t || visualLength(t) > 12) return false;
+  try {
+    return /^(?:\p{Extended_Pictographic}|[\u200D\uFE0F\uFE0E\u{1F3FB}-\u{1F3FF}\u20E3]|\s)+$/u.test(t)
+      && /\p{Extended_Pictographic}/u.test(t);
+  } catch { return false; }
 }
 
 export function SourceBadge({ t, compact = false }: { t: Track; compact?: boolean }) {
@@ -74,17 +224,112 @@ function CommentsPanelInner({ track, autoFocus = false }: { track: Track; autoFo
   const pathname = usePathname();
   const [text, setText] = useState("");
   const [reporting, setReporting] = useState<{ id: string; label: string } | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [picker, setPicker] = useState(false);
+  const [emojiTab, setEmojiTab] = useState<string>("recent");
+  const [emojiQuery, setEmojiQuery] = useState("");
+  const [recent, setRecent] = useState<string[]>([]);
+  const [sugIdx, setSugIdx] = useState(0);
+  const [focused, setFocused] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const comments = commentsFor(track.id);
 
+  useEffect(() => { setRecent(loadRecent()); }, []);
   useEffect(() => { if (autoFocus) inputRef.current?.focus(); }, [autoFocus]);
   useEffect(() => { if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight; }, [comments.length]);
 
-  const submit = () => {
-    if (!text.trim() || !currentUser) return;
-    addComment(track.id, text); setText("");
+  // auto-grow the textarea
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(148, el.scrollHeight)}px`;
+  }, [text]);
+
+  // close picker on outside click / Escape
+  useEffect(() => {
+    if (!picker) return;
+    const down = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (pickerRef.current?.contains(t) || inputRef.current?.contains(t)) return;
+      setPicker(false);
+    };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setPicker(false); };
+    document.addEventListener("mousedown", down);
+    document.addEventListener("keydown", key);
+    return () => { document.removeEventListener("mousedown", down); document.removeEventListener("keydown", key); };
+  }, [picker]);
+
+  const sug = computeSuggestions(text);
+  const sugs = sug?.items ?? [];
+  const activeSug = Math.min(sugIdx, Math.max(0, sugs.length - 1));
+  const used = visualLength(text);
+  const left = COMMENT_MAX - used;
+  const canSend = text.trim().length > 0 && left >= 0;
+
+  const remember = (emoji: string) => setRecent(pushRecent(emoji));
+
+  const insert = (chunk: string) => {
+    const el = inputRef.current;
+    if (/^\p{Extended_Pictographic}/u.test(chunk)) remember(chunk);
+    if (!el) { setText((t) => t + chunk); return; }
+    const start = el.selectionStart ?? text.length;
+    const end = el.selectionEnd ?? text.length;
+    setText(text.slice(0, start) + chunk + text.slice(end));
+    requestAnimationFrame(() => {
+      el.focus();
+      const pos = start + chunk.length;
+      el.setSelectionRange(pos, pos);
+    });
   };
+
+  const acceptSuggestion = (s: Sug) => {
+    if (!sug) return;
+    const cut = text.length - sug.token.length;
+    setText(text.slice(0, cut) + s.emoji + " ");
+    remember(s.emoji);
+    setSugIdx(0);
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    });
+  };
+
+  const onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(e.target.value);
+    setSugIdx(0);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (sugs.length > 0 && sugIdx >= 0) {
+      if (e.key === "ArrowDown") { e.preventDefault(); setSugIdx((i) => (i + 1) % sugs.length); return; }
+      if (e.key === "ArrowUp") { e.preventDefault(); setSugIdx((i) => (i - 1 + sugs.length) % sugs.length); return; }
+      if (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey)) { e.preventDefault(); acceptSuggestion(sugs[activeSug]); return; }
+      if (e.key === "Escape") { e.preventDefault(); setSugIdx(-1); return; }
+    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
+  };
+
+  const submit = () => {
+    if (!canSend || !currentUser) return;
+    addComment(track.id, text);
+    setText("");
+    setPicker(false);
+    setEmojiQuery("");
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (el) { el.style.height = "auto"; el.focus(); }
+    });
+  };
+
+  const activeSet = EMOJI_SETS.find((s) => s.id === emojiTab);
+  const q = emojiQuery.trim().toLowerCase();
+  const panelEmoji = q
+    ? Object.entries(EMOJI_NAMES).filter(([, n]) => n.includes(q)).map(([e]) => e).slice(0, 64)
+    : emojiTab === "recent"
+      ? (recent.length ? recent : EMOJI_SETS[0].items)
+      : (activeSet?.items ?? EMOJI_SETS[0].items);
 
   const startReport = (id: string, name: string) => {
     if (!currentUser) {
@@ -111,7 +356,7 @@ function CommentsPanelInner({ track, autoFocus = false }: { track: Track; autoFo
                   <Link href={`/profile/${u.handle}`} className="comment-name">{u.name}</Link>
                   <span className="comment-time">{timeAgo(c.createdAt)}</span>
                 </div>
-                <p>{c.text}</p>
+                <p className={isEmojiOnly(c.text) ? "comment-emoji-only" : "comment-text"}>{c.text}</p>
               </div>
               <div className="comment-tools">
                 {!mine && (
@@ -131,12 +376,95 @@ function CommentsPanelInner({ track, autoFocus = false }: { track: Track; autoFo
         })}
       </div>
       {currentUser ? (
-        <div className="composer">
+        <div className="composer composer-fb">
           <Avatar user={currentUser} size={32} />
-          <input ref={inputRef} value={text} onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-            placeholder="Add a comment…" maxLength={400} aria-label="Add a comment" />
-          <button className="icon-btn send-btn" onClick={submit} disabled={!text.trim()} aria-label="Send comment"><Send size={17} /></button>
+          <div className="composer-field" ref={pickerRef}>
+            <div className={`fb-pill${focused ? " focused" : ""}`}>
+              <textarea
+                ref={inputRef}
+                value={text}
+                onChange={onChange}
+                onKeyDown={onKeyDown}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setTimeout(() => setFocused(false), 140)}
+                rows={1}
+                placeholder="Write a comment…"
+                aria-label="Add a comment"
+              />
+              <button
+                type="button"
+                className={`fb-icon${picker ? " on" : ""}`}
+                onClick={() => { setPicker((v) => !v); setEmojiQuery(""); }}
+                aria-label="Insert emoji" aria-expanded={picker}
+              ><Smile size={18} /></button>
+              {text.trim() && (
+                <button
+                  type="button"
+                  className="fb-send"
+                  onClick={submit}
+                  disabled={!canSend}
+                  aria-label="Send comment"
+                ><Send size={17} /></button>
+              )}
+            </div>
+
+            {(focused || text) && (
+              <div className="fb-hint">
+                <span>Enter to send · Shift + Enter for a new line</span>
+                {left <= 120 && <span className={`composer-count${left < 0 ? " over" : ""}`}>{left}</span>}
+              </div>
+            )}
+
+            {sugs.length > 0 && sugIdx >= 0 && (
+              <div className="sug-pop" role="listbox" aria-label="Emoji suggestions">
+                {sugs.map((s, i) => (
+                  <button
+                    key={`${s.emoji}-${i}`}
+                    type="button" role="option" aria-selected={i === activeSug}
+                    className={`sug-row${i === activeSug ? " on" : ""}`}
+                    onMouseEnter={() => setSugIdx(i)}
+                    onMouseDown={(e) => { e.preventDefault(); acceptSuggestion(s); }}
+                  >
+                    <span className="sug-emoji">{s.emoji}</span>
+                    <span className="sug-name">{s.label}</span>
+                    {i === activeSug && <span className="sug-key">Tab</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {picker && (
+              <div className="emoji-pop" role="dialog" aria-label="Emoji and expressions">
+                <input
+                  className="emoji-search"
+                  value={emojiQuery}
+                  onChange={(e) => setEmojiQuery(e.target.value)}
+                  placeholder="Search emoji — try fire, heart, clap"
+                  aria-label="Search emoji"
+                />
+                {!q && (
+                  <div className="emoji-tabs">
+                    <button type="button" className={`emoji-tab${emojiTab === "recent" ? " on" : ""}`} onClick={() => setEmojiTab("recent")}>🕘 Recent</button>
+                    {EMOJI_SETS.map((s) => (
+                      <button key={s.id} type="button" className={`emoji-tab${emojiTab === s.id ? " on" : ""}`} onClick={() => setEmojiTab(s.id)}>{s.label}</button>
+                    ))}
+                  </div>
+                )}
+                <div className="emoji-grid">
+                  {panelEmoji.length === 0 ? (
+                    <div className="emoji-none">No emoji matches “{emojiQuery}”.</div>
+                  ) : panelEmoji.map((e, i) => (
+                    <button
+                      key={`${e}-${i}`} type="button" className="emoji-cell"
+                      title={EMOJI_NAMES[e] ?? e}
+                      onMouseDown={(ev) => { ev.preventDefault(); insert(e); }}
+                      aria-label={`Insert ${EMOJI_NAMES[e] ?? e}`}
+                    >{e}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <div className="composer-gate">
