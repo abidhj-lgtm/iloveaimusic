@@ -1,4 +1,4 @@
-# I Listen AI Music
+# I Love AI Music
 
 A community feed for AI-generated music. Post tracks from your computer (with cover art)
 or embed them from YouTube, tell the story behind each track, share the exact style prompt,

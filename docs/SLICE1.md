@@ -12,7 +12,7 @@ Then run the new migration if you are on Supabase:
 
 **Brand — I Love AI Music**
 Display name, logo (heart + waveform), favicon, OG images, mail templates and subjects,
-SEO metadata, JSON-LD (`alternateName` keeps "I Listen AI Music" for entity continuity),
+SEO metadata, JSON-LD (`alternateName` keeps "I Love AI Music" for entity continuity),
 legal documents, and `llms.txt`. Domain `iloveaimusic.com`, handle `@iloveaimusic`,
 contacts `hello@` / `legal@` / `moderation@iloveaimusic.com`.
 

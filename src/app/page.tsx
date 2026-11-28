@@ -286,7 +286,7 @@ function HomeInner() {
           </div>
         ) : (
           <div className="rail-card studio-card">
-            <h3 className="rail-title"><Sparkles size={16} />Join I Listen</h3>
+            <h3 className="rail-title"><Sparkles size={16} />Join I Love AI Music</h3>
             <p className="rail-copy">A home for AI-made music: the track, the story, the prompt, the lyrics.</p>
             <Link href="/signup" className="btn btn-brand btn-sm wfull">Create your account</Link>
             <button className="btn btn-ghost btn-sm wfull" onClick={() => { demoLogin(); toast.push({ kind: "ok", msg: "Welcome to the demo studio, Aria." }); }}>Enter the demo studio</button>

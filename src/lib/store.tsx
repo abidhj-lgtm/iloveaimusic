@@ -158,7 +158,7 @@ function BootSplash({ note }: { note?: string }) {
   return (
     <div className="boot">
       <div className="boot-mark"><span className="boot-eq"><i /><i /><i /><i /><i /></span></div>
-      <div className="boot-name">I Listen <em>AI Music</em></div>
+      <div className="boot-name">I Love <em>AI Music</em></div>
       <div className="boot-sub">{note ?? "Connecting to your studio…"}</div>
     </div>
   );
