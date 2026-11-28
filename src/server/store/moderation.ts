@@ -162,13 +162,30 @@ export async function updateReportStatus(
 ): Promise<void> {
   const params = new URLSearchParams();
   params.set("id", eq(id));
-  const body: any = {
-    status,
+
+  // Build body with only columns that exist (resilient to schema differences)
+  const body: any = { status };
+
+  // Try to set optional columns; if they don't exist, the PATCH will fail
+  // and we fall back to status-only update
+  const fullBody = {
+    ...body,
     assigned_to: moderatorId,
-    resolved_at: status === "resolved" || status === "dismissed" ? new Date().toISOString() : null
+    resolved_at: status === "resolved" || status === "dismissed" ? new Date().toISOString() : null,
+    ...(notes ? { resolution_notes: notes } : {})
   };
-  if (notes) body.resolution_notes = notes;
-  await req("reports", "PATCH", params, body);
+
+  try {
+    await req("reports", "PATCH", params, fullBody);
+  } catch (err) {
+    // If the error is about missing columns, retry with just status
+    const msg = String(err);
+    if (msg.includes("Could not find") && msg.includes("column")) {
+      await req("reports", "PATCH", params, body);
+    } else {
+      throw err;
+    }
+  }
 }
 
 export async function hideTrack(trackId: string, moderatorId: string): Promise<void> {

@@ -375,10 +375,10 @@
 .adm-page-num { font-size: 12.5px; font-weight: 700; color: var(--muted); padding: 0 8px; font-variant-numeric: tabular-nums; }
 
 /* ── drawer ────────────────────────────────────────────────── */
-.adm-scrim { position: fixed; inset: 0; z-index: 80; background: rgba(4,2,10,.72); backdrop-filter: blur(4px); animation: admFade .2s ease both; }
+.adm-scrim { position: fixed; inset: 0; z-index: 90; background: rgba(4,2,10,.72); backdrop-filter: blur(4px); animation: admFade .2s ease both; }
 @keyframes admFade { from { opacity: 0 } to { opacity: 1 } }
 .adm-drawer {
-  position: fixed; top: 0; right: 0; bottom: 0; width: min(520px, 100vw); z-index: 81;
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(520px, 100vw); z-index: 100;
   background: linear-gradient(180deg, #150f28, #0c0818);
   border-left: 1px solid var(--line2); box-shadow: -24px 0 70px rgba(0,0,0,.65);
   display: flex; flex-direction: column; animation: admSlide .28s cubic-bezier(.2,.85,.2,1) both;
