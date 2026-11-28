@@ -11,6 +11,8 @@ import { PlayButton } from "@/components/play-button";
 import { EmptyState } from "@/components/track-card";
 import { artistCatalog } from "@/server/content-service";
 import { playlistsByUser } from "@/server/store/features";
+import { recordProfileView } from "@/server/analytics";
+import { headers as nextHeaders } from "next/headers";
 import type { Track, User } from "@/lib/types";
 
 
@@ -67,6 +69,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
       </div>
     );
   }
+
+  // ── Profile view analytics (fire-and-forget) ──
+  const headersList = await nextHeaders();
+  void recordProfileView(data.artist.id, new Request("http://internal", {
+    headers: Object.fromEntries(headersList.entries())
+  }), null);
 
   const { artist, tracks, playlists } = data;
   const p = PALETTES[artist.avatarPalette % PALETTES.length];

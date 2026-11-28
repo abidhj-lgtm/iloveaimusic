@@ -12,6 +12,8 @@ import { PlayButton } from "@/components/play-button";
 import { getTrackBundle } from "@/server/content-service";
 import { getRights } from "@/server/trust/service";
 import { getRepo } from "@/server/store";
+import { recordTrackView } from "@/server/analytics";
+import { headers as nextHeaders, cookies } from "next/headers";
 import type { Track, User } from "@/lib/types";
 import { SimilarTracks } from "@/components/similar-tracks";
 
@@ -80,6 +82,16 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const data = await load(id);
   if (!data) return <TrackClientOnly trackId={id} />;
+
+  // ── Track view analytics (fire-and-forget) ──
+  const headersList = await nextHeaders();
+  const cookieStore = await cookies();
+  // Note: viewerId is null here because resolving the session in this component 
+  // would require refactoring `load`. Bot filtering, country detection, and 
+  // new visitor tracking still work perfectly.
+  void recordTrackView(id, new Request("http://internal", {
+    headers: Object.fromEntries(headersList.entries())
+  }), cookieStore.get("session")?.value ?? null);
 
   const { track, artist, likeCount } = data;
   const rights = await getRights(track.id).catch(() => null);

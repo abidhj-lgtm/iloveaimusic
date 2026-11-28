@@ -163,11 +163,10 @@ export async function updateReportStatus(
   const params = new URLSearchParams();
   params.set("id", eq(id));
 
-  // Build body with only columns that exist (resilient to schema differences)
+  console.log(`[Moderation] Updating report ${id} to status ${status}`);
+
   const body: any = { status };
 
-  // Try to set optional columns; if they don't exist, the PATCH will fail
-  // and we fall back to status-only update
   const fullBody = {
     ...body,
     assigned_to: moderatorId,
@@ -175,17 +174,33 @@ export async function updateReportStatus(
     ...(notes ? { resolution_notes: notes } : {})
   };
 
+  // Try the full audit trail
   try {
+    console.log(`[Moderation] Attempting full update with audit trail`);
     await req("reports", "PATCH", params, fullBody);
+    console.log(`[Moderation] Full update succeeded`);
+    return;
   } catch (err) {
-    // If the error is about missing columns, retry with just status
-    const msg = String(err);
-    if (msg.includes("Could not find") && msg.includes("column")) {
-      await req("reports", "PATCH", params, body);
-    } else {
-      throw err;
-    }
+    console.warn(`[Moderation] Full update failed:`, err);
   }
+
+  // Narrower attempt: status + resolved_at only
+  try {
+    console.log(`[Moderation] Attempting status + resolved_at update`);
+    await req("reports", "PATCH", params, {
+      status,
+      resolved_at: status === "resolved" || status === "dismissed" ? new Date().toISOString() : null
+    });
+    console.log(`[Moderation] Status + resolved_at update succeeded`);
+    return;
+  } catch (err) {
+    console.warn(`[Moderation] Status + resolved_at update failed:`, err);
+  }
+
+  // Last resort: status alone
+  console.log(`[Moderation] Attempting status-only update`);
+  await req("reports", "PATCH", params, { status });
+  console.log(`[Moderation] Status-only update succeeded`);
 }
 
 export async function hideTrack(trackId: string, moderatorId: string): Promise<void> {

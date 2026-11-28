@@ -51,20 +51,28 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    console.log(`[API] Processing action for report ${id}`);
+    
     const viewer = await resolveSession(readSessionToken(req));
     const { profile } = await adminIdentity(viewer?.id ?? null);
     if (!profile) return fail("Admin access required.", 403, "forbidden");
     if (profile.role !== "admin") return fail("Only admins can moderate reports.", 403, "forbidden");
 
     const body = await readBody(req);
+    console.log(`[API] Request body:`, body);
+    
     const parsed = actionSchema.safeParse(body);
-    if (!parsed.success) return fail("Invalid action.", 400, "validation");
+    if (!parsed.success) {
+      console.error(`[API] Validation failed:`, parsed.error);
+      return fail("Invalid action.", 400, "validation");
+    }
 
     const report = await getReport(id);
     if (!report) return fail("Report not found.", 404, "notfound");
 
     const { action, notes } = parsed.data;
     const moderatorId = profile.id;
+    console.log(`[API] Executing action: ${action} by moderator ${moderatorId}`);
 
     // Handle status updates
     if (action === "dismiss") {

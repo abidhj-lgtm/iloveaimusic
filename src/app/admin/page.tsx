@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   Shield, LayoutDashboard, Users, Music2, Flag, Settings, Search, RefreshCw, X, Check,
@@ -804,6 +805,15 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "system", label: "System", icon: <Settings size={17} /> }
 ];
 
+/* ══════════════ portal overlay ══════════════ */
+
+function Overlay({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  if (!mounted || typeof document === "undefined") return null;
+  return createPortal(<div className="adm-portal">{children}</div>, document.body);
+}
+
 /* ══════════════ reports tab ══════════════ */
 
 function ReportsTab() {
@@ -828,12 +838,17 @@ function ReportsTab() {
 
   const handleAction = async (reportId: string, action: string, notes?: string) => {
     try {
+      console.log(`[Reports] Calling action: ${action} on report ${reportId}`);
       const res = await fetch(`/api/admin/reports/${reportId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, notes })
       });
+      
+      console.log(`[Reports] Response status: ${res.status}`);
       const d = await res.json();
+      console.log(`[Reports] Response data:`, d);
+      
       if (d?.ok) {
         toast.push({ kind: "ok", msg: `Report ${action.replace("_", " ")} successfully.` });
         setSelectedReport(null);
@@ -845,10 +860,13 @@ function ReportsTab() {
         const d2 = await r2.json();
         if (d2?.ok) setReports(d2.reports ?? []);
       } else {
-        toast.push({ kind: "err", msg: d?.error ?? "Action failed" });
+        const errorMsg = d?.error ?? `Action failed with status ${res.status}`;
+        console.error(`[Reports] Action failed:`, errorMsg);
+        toast.push({ kind: "err", msg: errorMsg });
       }
-    } catch {
-      toast.push({ kind: "err", msg: "Action failed" });
+    } catch (err) {
+      console.error(`[Reports] Exception:`, err);
+      toast.push({ kind: "err", msg: `Action failed: ${err instanceof Error ? err.message : "Unknown error"}` });
     }
   };
 
@@ -951,25 +969,28 @@ function ReportDetailDrawer({ reportId, onClose, onAction }: { reportId: string;
 
   const handle = async (action: string) => {
     setBusy(action);
-    await onAction(reportId, action, notes.trim() || undefined);
-    setBusy("");
+    try {
+      await onAction(reportId, action, notes.trim() || undefined);
+    } finally {
+      setBusy("");
+    }
   };
 
   if (loading) {
     return (
-      <>
+      <Overlay>
         <div className="adm-scrim" onMouseDown={onClose} />
         <aside className="adm-drawer">
           <div className="adm-drawer-head"><h3>Loading report…</h3><button className="adm-icon" onClick={onClose}><X size={16} /></button></div>
           <div className="adm-drawer-body"><SkelRows n={4} /></div>
         </aside>
-      </>
+      </Overlay>
     );
   }
 
   if (!report) {
     return (
-      <>
+      <Overlay>
         <div className="adm-scrim" onMouseDown={onClose} />
         <aside className="adm-drawer">
           <div className="adm-drawer-head"><h3>Report not found</h3><button className="adm-icon" onClick={onClose}><X size={16} /></button></div>
@@ -977,12 +998,12 @@ function ReportDetailDrawer({ reportId, onClose, onAction }: { reportId: string;
             <Empty icon={<AlertTriangle size={24} />} title="Could not load report" body="The report may have been deleted or you lack permission." actions={<button className="adm-btn primary" onClick={onClose}>Close</button>} />
           </div>
         </aside>
-      </>
+      </Overlay>
     );
   }
 
   return (
-    <>
+    <Overlay>
       <div className="adm-scrim" onMouseDown={onClose} />
       <aside className="adm-drawer" role="dialog" aria-modal="true" aria-label="Report detail">
         <div className="adm-drawer-head">
@@ -1084,7 +1105,7 @@ function ReportDetailDrawer({ reportId, onClose, onAction }: { reportId: string;
           </button>
         </div>
       </aside>
-    </>
+    </Overlay>
   );
 }
 
