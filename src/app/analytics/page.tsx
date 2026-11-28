@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { BarChart3, Loader2, Play, Heart, MessageCircle, Disc3, Download } from "lucide-react";
+import { BarChart3, Loader2, Play, Heart, MessageCircle, Disc3, Download, Headphones } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { formatCount } from "@/lib/utils";
 
