@@ -811,6 +811,7 @@ function ReportsTab() {
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [filter, setFilter] = useState<"open" | "investigating" | "resolved" | "dismissed" | "all">("open");
+  const toast = useToast();
 
   useEffect(() => {
     setLoading(true);
@@ -820,281 +821,256 @@ function ReportsTab() {
     
     fetch(`/api/admin/reports?${params}`)
       .then((r) => r.json())
-      .then((d) => {
-        if (d?.ok) setReports(d.reports ?? []);
-      })
+      .then((d) => { if (d?.ok) setReports(d.reports ?? []); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [filter]);
 
-  return (
-    <div>
-      <div className="mb-4 flex gap-2">
-        {(["open", "investigating", "resolved", "dismissed", "all"] as const).map((f) => (
-          <button
-            key={f}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-              filter === f
-                ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
-                : "bg-[#1a1625] text-gray-400 hover:text-white"
-            }`}
-            onClick={() => setFilter(f)}
-          >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div className="text-center py-12 text-gray-500">Loading reports...</div>
-      ) : reports.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          No {filter === "all" ? "" : filter} reports found.
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {reports.map((report) => (
-            <ReportRow key={report.id} report={report} onSelect={() => setSelectedReport(report.id)} />
-          ))}
-        </div>
-      )}
-
-      {selectedReport && (
-        <ReportDetail
-          reportId={selectedReport}
-          onClose={() => setSelectedReport(null)}
-          onAction={() => {
-            setSelectedReport(null);
-            setFilter(filter);
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-function ReportRow({ report, onSelect }: { report: any; onSelect: () => void }) {
-  const statusColors = {
-    open: "bg-red-500/20 text-red-400",
-    investigating: "bg-amber-500/20 text-amber-400",
-    resolved: "bg-green-500/20 text-green-400",
-    dismissed: "bg-gray-500/20 text-gray-400"
-  };
-
-  return (
-    <div
-      className="bg-[#1a1625] border border-[#2a2635] rounded-lg p-4 hover:border-purple-500/50 cursor-pointer transition-all"
-      onClick={onSelect}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${statusColors[report.status as keyof typeof statusColors]}`}>
-              {report.status}
-            </span>
-            <span className="text-xs text-gray-500">
-              {new Date(report.created_at).toLocaleDateString()}
-            </span>
-          </div>
-          <div className="text-sm font-semibold text-white mb-1">
-            {report.reason}
-          </div>
-          <div className="text-sm text-gray-400 line-clamp-2">
-            {report.details}
-          </div>
-          <div className="text-xs text-gray-500 mt-2">
-            {report.track_id && "🎵 Track report"}
-            {report.comment_id && "💬 Comment report"}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ReportDetail({ reportId, onClose, onAction }: { reportId: string; onClose: () => void; onAction: () => void }) {
-  const [report, setReport] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [notes, setNotes] = useState("");
-
-  useEffect(() => {
-    fetch(`/api/admin/reports/${reportId}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d?.ok) setReport(d.report);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [reportId]);
-
-  const handleAction = async (action: string) => {
-    setActionLoading(true);
+  const handleAction = async (reportId: string, action: string, notes?: string) => {
     try {
       const res = await fetch(`/api/admin/reports/${reportId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, notes: notes || undefined })
+        body: JSON.stringify({ action, notes })
       });
       const d = await res.json();
       if (d?.ok) {
-        onAction();
+        toast.push({ kind: "ok", msg: `Report ${action.replace("_", " ")} successfully.` });
+        setSelectedReport(null);
+        // Refresh list
+        const params = new URLSearchParams();
+        if (filter !== "all") params.set("status", filter);
+        params.set("limit", "50");
+        const r2 = await fetch(`/api/admin/reports?${params}`);
+        const d2 = await r2.json();
+        if (d2?.ok) setReports(d2.reports ?? []);
       } else {
-        alert(d?.error ?? "Action failed");
+        toast.push({ kind: "err", msg: d?.error ?? "Action failed" });
       }
-    } catch (err) {
-      alert("Action failed");
-    } finally {
-      setActionLoading(false);
+    } catch {
+      toast.push({ kind: "err", msg: "Action failed" });
     }
   };
 
-  if (loading) {
-    return (
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-        <div className="text-white">Loading...</div>
+  return (
+    <>
+      <div className="adm-head">
+        <div>
+          <h1 className="adm-h1">Report <span>queue</span></h1>
+          <p className="adm-sub">Community flags for copyright, abuse, and policy problems.</p>
+        </div>
+        <div className="adm-head-right">
+          <button className="adm-btn" onClick={() => { setLoading(true); setFilter(filter); }}><RefreshCw size={14} /> Refresh</button>
+        </div>
       </div>
-    );
-  }
 
-  if (!report) {
-    return (
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-        <div className="text-white">Report not found</div>
+      <div className="adm-toolbar">
+        <div className="adm-chips">
+          {(["open", "investigating", "resolved", "dismissed", "all"] as const).map((f) => (
+            <button key={f} className={`adm-chip${filter === f ? " on" : ""}`} onClick={() => setFilter(f)}>
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {loading ? (
+        <SkelRows n={6} />
+      ) : reports.length === 0 ? (
+        <Empty icon={<Check size={24} />} title="Queue is clear" body={`No ${filter === "all" ? "" : filter} reports found. The community is behaving itself.`} />
+      ) : (
+        <div className="adm-table-wrap">
+          <table className="adm-table">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Reason</th>
+                <th>Target</th>
+                <th>Details</th>
+                <th>Reported</th>
+                <th style={{ textAlign: "right" }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reports.map((r) => (
+                <tr key={r.id} onClick={() => setSelectedReport(r.id)} style={{ cursor: "pointer" }}>
+                  <td>
+                    <Pill kind={r.status === "open" ? "hidden" : r.status === "investigating" ? "admin" : r.status === "resolved" ? "live" : "deleted"}>
+                      {r.status}
+                    </Pill>
+                  </td>
+                  <td style={{ fontWeight: 600, textTransform: "capitalize" }}>{r.reason?.replace("_", " ")}</td>
+                  <td>
+                    {r.track_id && <span className="adm-pill" style={{ background: "var(--surf3)", color: "var(--muted)" }}>🎵 Track</span>}
+                    {r.comment_id && <span className="adm-pill" style={{ background: "var(--surf3)", color: "var(--muted)" }}>💬 Comment</span>}
+                  </td>
+                  <td style={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--muted)" }}>
+                    {r.details}
+                  </td>
+                  <td style={{ color: "var(--muted)", fontSize: 12, whiteSpace: "nowrap" }}>{r.created_at ? timeAgo(Date.parse(r.created_at)) : "Unknown"}</td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <div className="adm-row-actions">
+                      <button className="adm-mini" onClick={() => setSelectedReport(r.id)} aria-label="View details"><ChevronRight size={13} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {selectedReport && (
+        <ReportDetailDrawer reportId={selectedReport} onClose={() => setSelectedReport(null)} onAction={handleAction} />
+      )}
+    </>
+  );
+}
+
+function ReportDetailDrawer({ reportId, onClose, onAction }: { reportId: string; onClose: () => void; onAction: (id: string, action: string, notes?: string) => void }) {
+  const [report, setReport] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState("");
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/admin/reports/${reportId}`)
+      .then((r) => r.json())
+      .then((d) => { if (d?.ok) setReport(d.report); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [reportId]);
+
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", key);
+    const prev = document.body.style.overflow; document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", key); document.body.style.overflow = prev; };
+  }, [onClose]);
+
+  const handle = async (action: string) => {
+    setBusy(action);
+    await onAction(reportId, action, notes.trim() || undefined);
+    setBusy("");
+  };
+
+  if (loading || !report) {
+    return (
+      <>
+        <div className="adm-scrim" onMouseDown={onClose} />
+        <aside className="adm-drawer">
+          <div className="adm-drawer-head"><h3>Loading report…</h3><button className="adm-icon" onClick={onClose}><X size={16} /></button></div>
+          <div className="adm-drawer-body"><SkelRows n={4} /></div>
+        </aside>
+      </>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div
-        className="bg-[#130f22] border border-[#2a2635] rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h2 className="text-xl font-bold text-white mb-2">{report.reason}</h2>
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <span className="px-2 py-0.5 rounded bg-gray-500/20 text-gray-300">{report.status}</span>
-                <span>{new Date(report.created_at).toLocaleString()}</span>
-              </div>
-            </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-white">
-              <X size={20} />
-            </button>
+    <>
+      <div className="adm-scrim" onMouseDown={onClose} />
+      <aside className="adm-drawer" role="dialog" aria-modal="true" aria-label="Report detail">
+        <div className="adm-drawer-head">
+          <div className="adm-detail-hero" style={{ flexDirection: "column", alignItems: "flex-start" }}>
+            <h3 style={{ marginBottom: 4 }}>{report.reason?.replace("_", " ").toUpperCase()}</h3>
+            <Pill kind={report.status === "open" ? "hidden" : report.status === "investigating" ? "admin" : report.status === "resolved" ? "live" : "deleted"}>
+              {report.status}
+            </Pill>
           </div>
+          <button className="adm-icon" onClick={onClose} aria-label="Close panel"><X size={16} /></button>
+        </div>
 
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold text-gray-400 mb-2">Details</h3>
-            <p className="text-white whitespace-pre-wrap">{report.details}</p>
+        <div className="adm-drawer-body">
+          <dl className="adm-kv">
+            <dt>Reported</dt>
+            <dd>{report.created_at ? new Date(report.created_at).toLocaleString() : "Unknown"}</dd>
+            <dt>Target</dt>
+            <dd>
+              {report.track_id && <span>🎵 Track</span>}
+              {report.comment_id && <span>💬 Comment</span>}
+            </dd>
+            {report.reporter && <><dt>Reporter</dt><dd>{report.reporter.name} (@{report.reporter.handle})</dd></>}
+          </dl>
+
+          <div className="adm-field">
+            <label className="adm-label">Details</label>
+            <div className="adm-input" style={{ whiteSpace: "pre-wrap", minHeight: 80, cursor: "text" }}>{report.details}</div>
           </div>
 
           {report.track && (
-            <div className="mb-4 p-3 bg-[#1a1625] rounded-lg">
-              <h3 className="text-sm font-semibold text-gray-400 mb-2">Reported Track</h3>
-              <div className="flex items-center gap-3">
-                <img src={report.track.cover_url || ""} alt="" className="w-16 h-16 rounded" />
-                <div>
-                  <div className="font-semibold text-white">{report.track.title}</div>
-                  <div className="text-sm text-gray-400">by {report.track.artist_name || "Unknown"}</div>
-                </div>
+            <div className="adm-dtrack" style={{ marginTop: 16 }}>
+              <img src={report.track.cover_url || coverUrl(report.track.cover_seed, report.track.cover_palette)} alt="" />
+              <div className="adm-dtrack-txt">
+                <strong>{report.track.title}</strong>
+                <div className="adm-dtrack-meta">by {report.track.artist_name || "Unknown"}</div>
               </div>
             </div>
           )}
 
           {report.comment && (
-            <div className="mb-4 p-3 bg-[#1a1625] rounded-lg">
-              <h3 className="text-sm font-semibold text-gray-400 mb-2">Reported Comment</h3>
-              <p className="text-white">{report.comment.text}</p>
-              <div className="text-xs text-gray-500 mt-2">by {report.comment.user_name || "Unknown"}</div>
+            <div className="adm-dtrack" style={{ marginTop: 16 }}>
+              <div className="adm-dtrack-txt" style={{ paddingLeft: 0 }}>
+                <strong>Comment</strong>
+                <div className="adm-dtrack-meta">{report.comment.text}</div>
+              </div>
             </div>
           )}
 
-          <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-400 mb-2">
-              Resolution Notes (optional)
-            </label>
+          <div className="adm-field" style={{ marginTop: 20 }}>
+            <label className="adm-label" htmlFor="res-notes">Resolution Notes</label>
             <textarea
+              id="res-notes"
+              className="adm-textarea"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full bg-[#1a1625] border border-[#2a2635] rounded-lg p-3 text-white resize-none"
+              placeholder="Add notes about this decision for the audit trail..."
               rows={3}
-              placeholder="Add notes about this decision..."
             />
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            {report.status === "open" && (
-              <button
-                onClick={() => handleAction("investigate")}
-                disabled={actionLoading}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-semibold disabled:opacity-50"
-              >
-                Mark as Investigating
-              </button>
-            )}
-            <button
-              onClick={() => handleAction("dismiss")}
-              disabled={actionLoading}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-semibold disabled:opacity-50"
-            >
-              Dismiss
-            </button>
-            {report.track_id && (
-              <>
-                <button
-                  onClick={() => handleAction("hide_track")}
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-semibold disabled:opacity-50"
-                >
-                  Hide Track
-                </button>
-                <button
-                  onClick={() => handleAction("delete_track")}
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold disabled:opacity-50"
-                >
-                  Delete Track
-                </button>
-              </>
-            )}
-            {report.comment_id && (
-              <>
-                <button
-                  onClick={() => handleAction("hide_comment")}
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-semibold disabled:opacity-50"
-                >
-                  Hide Comment
-                </button>
-                <button
-                  onClick={() => handleAction("delete_comment")}
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold disabled:opacity-50"
-                >
-                  Delete Comment
-                </button>
-              </>
-            )}
-            <button
-              onClick={() => handleAction("suspend_user")}
-              disabled={actionLoading}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold disabled:opacity-50"
-            >
-              Suspend User
-            </button>
-            <button
-              onClick={() => handleAction("resolve")}
-              disabled={actionLoading}
-              className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg font-semibold disabled:opacity-50 ml-auto"
-            >
-              Mark as Resolved
-            </button>
-          </div>
         </div>
-      </div>
-    </div>
+
+        <div className="adm-drawer-foot">
+          {report.status === "open" && (
+            <button className="adm-btn" onClick={() => handle("investigate")} disabled={!!busy}>
+              {busy === "investigate" ? <Loader2 size={13} className="adm-spin" /> : <AlertTriangle size={13} />} Investigate
+            </button>
+          )}
+          <button className="adm-btn" onClick={() => handle("dismiss")} disabled={!!busy}>
+            {busy === "dismiss" ? <Loader2 size={13} className="adm-spin" /> : <X size={13} />} Dismiss
+          </button>
+          
+          <div style={{ flex: 1 }} />
+
+          {report.track_id && (
+            <>
+              <button className="adm-btn danger" onClick={() => handle("hide_track")} disabled={!!busy}>
+                {busy === "hide_track" ? <Loader2 size={13} className="adm-spin" /> : <EyeOff size={13} />} Hide Track
+              </button>
+              <button className="adm-btn danger" onClick={() => handle("delete_track")} disabled={!!busy}>
+                {busy === "delete_track" ? <Loader2 size={13} className="adm-spin" /> : <Trash2 size={13} />} Delete Track
+              </button>
+            </>
+          )}
+          {report.comment_id && (
+            <>
+              <button className="adm-btn danger" onClick={() => handle("hide_comment")} disabled={!!busy}>
+                {busy === "hide_comment" ? <Loader2 size={13} className="adm-spin" /> : <EyeOff size={13} />} Hide Comment
+              </button>
+              <button className="adm-btn danger" onClick={() => handle("delete_comment")} disabled={!!busy}>
+                {busy === "delete_comment" ? <Loader2 size={13} className="adm-spin" /> : <Trash2 size={13} />} Delete Comment
+              </button>
+            </>
+          )}
+          <button className="adm-btn danger" onClick={() => handle("suspend_user")} disabled={!!busy}>
+            {busy === "suspend_user" ? <Loader2 size={13} className="adm-spin" /> : <Ban size={13} />} Suspend User
+          </button>
+          <button className="adm-btn primary" onClick={() => handle("resolve")} disabled={!!busy}>
+            {busy === "resolve" ? <Loader2 size={13} className="adm-spin" /> : <Check size={13} />} Resolve
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }
 
