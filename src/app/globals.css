@@ -1461,11 +1461,13 @@ textarea::-webkit-scrollbar, .comments-list::-webkit-scrollbar, .stories::-webki
 
 .fb-pill textarea {
   flex: 1; min-width: 0;
-  min-height: 32px; max-height: 148px;
+  min-height: 32px; max-height: 200px;
   padding: 6px 0; margin: 0;
   background: none; border: none; outline: none; resize: none;
-  color: inherit; font-family: inherit; font-size: 14px; line-height: 1.45;
+  color: inherit; font-family: inherit; font-size: 14px; line-height: 1.5;
   overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 .fb-pill textarea::placeholder { color: var(--faint, #7a6f9c); }
 
@@ -1528,6 +1530,18 @@ textarea::-webkit-scrollbar, .comments-list::-webkit-scrollbar, .stories::-webki
   border-radius: 14px; padding: 10px;
   box-shadow: 0 20px 50px rgba(0,0,0,.6);
   animation: emojiRise .16s ease both;
+}
+
+/* Fixed positioning to escape overflow clipping */
+.emoji-pop-fixed {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: min(340px, calc(100vw - 40px));
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
 .emoji-search {

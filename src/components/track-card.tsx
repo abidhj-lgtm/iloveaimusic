@@ -434,7 +434,7 @@ function CommentsPanelInner({ track, autoFocus = false }: { track: Track; autoFo
             )}
 
             {picker && (
-              <div className="emoji-pop" role="dialog" aria-label="Emoji and expressions">
+              <div className="emoji-pop emoji-pop-fixed" role="dialog" aria-label="Emoji and expressions">
                 <input
                   className="emoji-search"
                   value={emojiQuery}
