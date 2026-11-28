@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { BarChart3, Loader2, Play, Heart, MessageCircle, Disc3, Download, Headphones } from "lucide-react";
+import { BarChart3, Loader2, Play, Heart, MessageCircle, Disc3, Download, Headphones, Shield } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { formatCount } from "@/lib/utils";
 
@@ -17,6 +17,17 @@ export default function AnalyticsPage() {
   const [series, setSeries] = useState<SeriesPoint[]>([]);
   const [top, setTop] = useState<TopTrack[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isStaff, setIsStaff] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser) { setIsStaff(false); return; }
+    let alive = true;
+    fetch("/api/admin/me", { credentials: "same-origin", cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { if (alive) setIsStaff(!!d?.isAdmin); })
+      .catch(() => { if (alive) setIsStaff(false); });
+    return () => { alive = false; };
+  }, [currentUser]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,6 +66,11 @@ export default function AnalyticsPage() {
           >
             <Download size={15} /> Export CSV
           </button>
+          {isStaff && (
+            <Link href="/admin" className="btn btn-brand btn-sm" title="Open the staff console">
+              <Shield size={15} /> Staff console
+            </Link>
+          )}
         </div>
       </div>
 
