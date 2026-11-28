@@ -8,7 +8,8 @@ import {
   Ban, BadgeCheck, Star, Trash2, EyeOff, Eye, RotateCcw, ExternalLink, Play, Heart,
   MessageCircle, Disc3, TrendingUp, Activity, Database, Megaphone, Bell, Loader2,
   AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Bookmark,
-  Plus, Minus, Lock, Home, UserPlus, Sparkles, Clock, Save, Inbox, Zap, ArrowLeft
+  Plus, Minus, Lock, Home, UserPlus, Sparkles, Clock, Save, Inbox, Zap, ArrowLeft,
+  Link2, Globe
 } from "lucide-react";
 import { useStore, useToast } from "@/lib/store";
 import { avatarUrl, coverUrl } from "@/lib/covers";
@@ -18,7 +19,7 @@ import { ConfirmDialog } from "@/components/ui";
 /* ══════════════ types ══════════════ */
 
 type Role = "user" | "moderator" | "admin";
-type Tab = "overview" | "creators" | "tracks" | "reports" | "system";
+type Tab = "overview" | "creators" | "tracks" | "reports" | "insights" | "system";
 
 interface Stats { tracks: number; live: number; hidden: number; deleted: number; plays: number; likes: number; comments: number }
 interface Creator {
@@ -802,6 +803,7 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "creators", label: "Creators", icon: <Users size={17} /> },
   { id: "tracks", label: "Tracks", icon: <Music2 size={17} /> },
   { id: "reports", label: "Reports", icon: <Flag size={17} /> },
+  { id: "insights", label: "Insights", icon: <TrendingUp size={17} /> },
   { id: "system", label: "System", icon: <Settings size={17} /> }
 ];
 
@@ -812,6 +814,243 @@ function Overlay({ children }: { children: React.ReactNode }) {
   useEffect(() => { setMounted(true); }, []);
   if (!mounted || typeof document === "undefined") return null;
   return createPortal(<div className="adm-portal">{children}</div>, document.body);
+}
+
+/* ══════════════ insights tab ══════════════ */
+
+function InsightsTab() {
+  const [days, setDays] = useState(30);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/analytics/overview?days=${days}`, { cache: "no-store" });
+      const d = await res.json().catch(() => ({}));
+      if (d?.ok) setData(d);
+      else setError(d?.error ?? "Could not load insights.");
+    } catch {
+      setError("Network error.");
+    }
+    setLoading(false);
+  }, [days]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const fmt = (n: number) => formatCount(n);
+  const pct = (n: number) => {
+    if (n === 0) return { label: "—", tone: "neutral" };
+    const sign = n > 0 ? "+" : "";
+    const tone = n > 10 ? "up" : n < -10 ? "down" : "neutral";
+    return { label: `${sign}${n.toFixed(1)}%`, tone };
+  };
+
+  return (
+    <>
+      <div className="adm-head">
+        <div>
+          <h1 className="adm-h1">Decision <span>center</span></h1>
+          <p className="adm-sub">Traffic, acquisition, and automated insights to guide your next move.</p>
+        </div>
+        <div className="adm-head-right">
+          <div className="adm-range" role="tablist" aria-label="Date range">
+            {[7, 30, 90].map((d) => (
+              <button key={d} role="tab" aria-selected={days === d} className={`adm-range-btn${days === d ? " on" : ""}`} onClick={() => setDays(d)}>{d}d</button>
+            ))}
+          </div>
+          <button className="adm-btn" onClick={load} disabled={loading}>
+            <RefreshCw size={14} className={loading ? "adm-spin" : ""} /> Refresh
+          </button>
+        </div>
+      </div>
+
+      {loading && !data ? (
+        <SkelRows n={8} />
+      ) : error ? (
+        <Empty icon={<AlertTriangle size={24} />} title="Insights unavailable" body={error}
+          actions={<button className="adm-btn primary" onClick={load}><RefreshCw size={14} /> Retry</button>} />
+      ) : data ? (
+        <>
+          {/* Automated Insights */}
+          {data.insights && data.insights.length > 0 && (
+            <section className="adm-panel adm-insights-panel">
+              <div className="adm-panel-head">
+                <h2 className="adm-panel-title"><Sparkles size={16} /> Automated insights</h2>
+                <span className="adm-panel-note">{data.insights.length} signals</span>
+              </div>
+              <div className="adm-insights-grid">
+                {data.insights.map((ins: any, i: number) => (
+                  <div key={i} className={`adm-insight adm-insight-${ins.kind}`}>
+                    <div className="adm-insight-head">
+                      <span className="adm-insight-dot" />
+                      <strong>{ins.title}</strong>
+                    </div>
+                    <p>{ins.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Period Comparison Cards */}
+          <div className="adm-stats">
+            {data.summary?.total_views && (
+              <StatTile icon={<Eye size={14} />} label="Total views" value={data.summary.total_views.current}
+                tone="var(--violet)" delta={Math.round(data.summary.total_views.changePct)}
+                foot={`${fmt(data.summary.total_views.previous)} prev period`} />
+            )}
+            {data.summary?.unique_visitors && (
+              <StatTile icon={<Users size={14} />} label="Unique visitors" value={data.summary.unique_visitors.current}
+                tone="var(--cyan)" delta={Math.round(data.summary.unique_visitors.changePct)}
+                foot={`${fmt(data.summary.unique_visitors.previous)} prev period`} />
+            )}
+            {data.summary?.new_visitors && (
+              <StatTile icon={<UserPlus size={14} />} label="New visitors" value={data.summary.new_visitors.current}
+                tone="var(--lime)" delta={Math.round(data.summary.new_visitors.changePct)}
+                foot={`${fmt(data.summary.new_visitors.previous)} prev period`} />
+            )}
+          </div>
+
+          {/* Traffic Trend */}
+          {data.trend && data.trend.length > 0 && (
+            <section className="adm-panel">
+              <div className="adm-panel-head">
+                <h2 className="adm-panel-title"><TrendingUp size={16} /> Traffic trend · last {days} days</h2>
+                <span className="adm-panel-note">{data.trend.reduce((a: number, d: any) => a + (d.views || 0), 0).toLocaleString()} total views</span>
+              </div>
+              <div className="adm-traffic-chart">
+                {(() => {
+                  const maxViews = Math.max(1, ...data.trend.map((d: any) => d.views));
+                  return data.trend.map((d: any, i: number) => (
+                    <div key={d.date} className="adm-traffic-bar-col" title={`${d.date}: ${d.views} views · ${d.unique} unique`}>
+                      <div className="adm-traffic-bar" style={{ height: `${Math.max(3, (d.views / maxViews) * 100)}%` }} />
+                      {i % Math.ceil(data.trend.length / 8) === 0 && (
+                        <span className="adm-traffic-label">{new Date(d.date).toLocaleDateString("en", { month: "short", day: "numeric" })}</span>
+                      )}
+                    </div>
+                  ));
+                })()}
+              </div>
+            </section>
+          )}
+
+          <div className="adm-grid-2">
+            {/* Acquisition Channels */}
+            <section className="adm-panel">
+              <div className="adm-panel-head">
+                <h2 className="adm-panel-title"><Link2 size={16} /> Acquisition channels</h2>
+                <span className="adm-panel-note">Top referrers</span>
+              </div>
+              {data.referrers?.length === 0 ? (
+                <div className="adm-views-empty" style={{ padding: 20 }}>No referrer data yet.</div>
+              ) : (
+                <div className="adm-referrers">
+                  {data.referrers?.slice(0, 8).map((r: any, i: number) => {
+                    const total = data.referrers.reduce((a: number, x: any) => a + x.views, 0);
+                    const sharePct = total > 0 ? (r.views / total) * 100 : 0;
+                    return (
+                      <div key={r.source || i} className="adm-referrer-row">
+                        <div className="adm-referrer-head">
+                          <strong>{r.source || "unknown"}</strong>
+                          <span>{fmt(r.views)} views · {fmt(r.unique_visitors)} unique</span>
+                        </div>
+                        <div className="adm-referrer-bar">
+                          <div style={{ width: `${sharePct}%` }} />
+                        </div>
+                        <span className="adm-referrer-pct">{sharePct.toFixed(1)}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            {/* Geographic Distribution */}
+            <section className="adm-panel">
+              <div className="adm-panel-head">
+                <h2 className="adm-panel-title"><Globe size={16} /> Geographic reach</h2>
+                <span className="adm-panel-note">Top countries</span>
+              </div>
+              {data.countries?.length === 0 ? (
+                <div className="adm-views-empty" style={{ padding: 20 }}>No geographic data yet.</div>
+              ) : (
+                <div className="adm-countries">
+                  {data.countries?.slice(0, 10).map((c: any, i: number) => {
+                    const total = data.countries.reduce((a: number, x: any) => a + x.views, 0);
+                    const sharePct = total > 0 ? (c.views / total) * 100 : 0;
+                    return (
+                      <div key={c.country} className="adm-country-row">
+                        <span className="adm-country-flag">{countryFlag(c.country)}</span>
+                        <strong>{c.country}</strong>
+                        <div className="adm-country-bar">
+                          <div style={{ width: `${sharePct}%` }} />
+                        </div>
+                        <span className="adm-country-pct">{fmt(c.views)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* Top Growing Tracks */}
+          <section className="adm-panel">
+            <div className="adm-panel-head">
+              <h2 className="adm-panel-title"><Zap size={16} /> Top growing tracks</h2>
+              <span className="adm-panel-note">vs previous {days} days</span>
+            </div>
+            {data.topGrowing?.length === 0 ? (
+              <div className="adm-views-empty" style={{ padding: 20 }}>No track growth data yet.</div>
+            ) : (
+              <div className="adm-table-wrap" style={{ border: "none", background: "transparent" }}>
+                <table className="adm-table" style={{ minWidth: 700 }}>
+                  <thead>
+                    <tr>
+                      <th>Track</th>
+                      <th>Artist</th>
+                      <th style={{ textAlign: "right" }}>Current</th>
+                      <th style={{ textAlign: "right" }}>Previous</th>
+                      <th style={{ textAlign: "right" }}>Growth</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.topGrowing?.map((t: any) => {
+                      const g = Number(t.growth_pct);
+                      const tone = g >= 50 ? "up" : g >= 0 ? "neutral" : "down";
+                      return (
+                        <tr key={t.track_id}>
+                          <td><strong>{t.title}</strong></td>
+                          <td style={{ color: "var(--muted)" }}>{t.artist_name}</td>
+                          <td className="adm-td-num">{fmt(t.current_views)}</td>
+                          <td className="adm-td-num" style={{ color: "var(--faint)" }}>{fmt(t.previous_views)}</td>
+                          <td className="adm-td-num">
+                            <span className={`adm-growth-pill adm-growth-${tone}`}>
+                              {g >= 0 ? "↑" : "↓"} {Math.abs(g).toFixed(1)}%
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </>
+      ) : null}
+    </>
+  );
+}
+
+/** Convert ISO country code to flag emoji */
+function countryFlag(code: string): string {
+  if (!code || code.length !== 2) return "🌍";
+  const base = 127397;
+  return String.fromCodePoint(...code.toUpperCase().split("").map((c) => c.charCodeAt(0) + base));
 }
 
 /* ══════════════ reports tab ══════════════ */
@@ -1166,7 +1405,7 @@ export default function AdminConsole() {
       const el = document.activeElement;
       const typing = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement;
       if (e.key === "/" && !typing) { e.preventDefault(); searchRef.current?.focus(); }
-      if (!typing && !e.metaKey && !e.ctrlKey && /^[1-5]$/.test(e.key)) setTab(TABS[Number(e.key) - 1].id);
+      if (!typing && !e.metaKey && !e.ctrlKey && /^[1-6]$/.test(e.key)) setTab(TABS[Number(e.key) - 1].id);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -1829,6 +2068,9 @@ export default function AdminConsole() {
 
         {/* ═══ REPORTS ═══ */}
         {tab === "reports" && <ReportsTab />}
+
+        {/* ═══ INSIGHTS ═══ */}
+        {tab === "insights" && <InsightsTab />}
 
         {/* ═══ SYSTEM ═══ */}
         {tab === "system" && <SystemTab />}

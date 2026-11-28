@@ -634,3 +634,105 @@
 @media (max-width: 900px) {
   .adm-portal .adm-drawer { width: 100vw !important; }
 }
+
+/* ── Insights tab: date range selector ─────────────────────── */
+.adm-range { display: inline-flex; gap: 3px; padding: 3px; background: var(--surf); border: 1px solid var(--line); border-radius: 10px; }
+.adm-range-btn {
+  padding: 5px 12px; border-radius: 7px; background: none; border: none;
+  color: var(--muted); font-family: inherit; font-size: 11.5px; font-weight: 700;
+  cursor: pointer; transition: all .14s;
+}
+.adm-range-btn:hover { color: var(--ink); background: rgba(255,255,255,.05); }
+.adm-range-btn.on { background: linear-gradient(100deg, var(--violet), var(--magenta)); color: #fff; box-shadow: 0 3px 12px rgba(139,92,246,.34); }
+
+/* ── Automated insights panel ──────────────────────────────── */
+.adm-insights-panel { background: linear-gradient(165deg, rgba(139,92,246,.08), rgba(236,72,153,.04)); border-color: rgba(139,92,246,.28); }
+.adm-insights-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.adm-insight {
+  padding: 13px 15px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--surf);
+  transition: all .16s;
+}
+.adm-insight:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(0,0,0,.3); }
+.adm-insight-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.adm-insight-head strong { font-size: 13px; font-weight: 750; letter-spacing: -.01em; }
+.adm-insight p { margin: 0; font-size: 12px; line-height: 1.55; color: var(--muted); }
+.adm-insight-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.adm-insight-success { border-color: rgba(163,230,53,.32); background: linear-gradient(135deg, rgba(163,230,53,.1), var(--surf)); }
+.adm-insight-success .adm-insight-dot { background: var(--lime); box-shadow: 0 0 8px rgba(163,230,53,.6); }
+.adm-insight-success strong { color: #bef264; }
+
+.adm-insight-warning { border-color: rgba(251,191,36,.32); background: linear-gradient(135deg, rgba(251,191,36,.1), var(--surf)); }
+.adm-insight-warning .adm-insight-dot { background: var(--amber); box-shadow: 0 0 8px rgba(251,191,36,.6); }
+.adm-insight-warning strong { color: #fcd34d; }
+
+.adm-insight-danger { border-color: rgba(251,113,133,.32); background: linear-gradient(135deg, rgba(251,113,133,.1), var(--surf)); }
+.adm-insight-danger .adm-insight-dot { background: var(--red); box-shadow: 0 0 8px rgba(251,113,133,.6); }
+.adm-insight-danger strong { color: #fda4af; }
+
+.adm-insight-info { border-color: rgba(34,211,238,.32); background: linear-gradient(135deg, rgba(34,211,238,.1), var(--surf)); }
+.adm-insight-info .adm-insight-dot { background: var(--cyan); box-shadow: 0 0 8px rgba(34,211,238,.6); }
+.adm-insight-info strong { color: #67e8f9; }
+
+/* ── Traffic trend chart ───────────────────────────────────── */
+.adm-traffic-chart {
+  display: flex; align-items: flex-end; gap: 2px;
+  height: 180px; padding: 10px 0 28px;
+  border-bottom: 1px solid var(--line);
+}
+.adm-traffic-bar-col {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  height: 100%; justify-content: flex-end; position: relative;
+  cursor: pointer;
+}
+.adm-traffic-bar {
+  width: 100%; min-height: 3px;
+  background: linear-gradient(180deg, var(--violet), var(--magenta));
+  border-radius: 3px 3px 0 0;
+  transition: all .2s;
+}
+.adm-traffic-bar-col:hover .adm-traffic-bar {
+  background: linear-gradient(180deg, var(--amber), var(--magenta));
+  box-shadow: 0 0 12px rgba(236,72,153,.5);
+}
+.adm-traffic-label {
+  position: absolute; bottom: -22px;
+  font-size: 9.5px; color: var(--faint); font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ── Acquisition channels ──────────────────────────────────── */
+.adm-referrers { display: flex; flex-direction: column; gap: 10px; }
+.adm-referrer-row { display: grid; grid-template-columns: 1fr auto 52px; gap: 10px; align-items: center; }
+.adm-referrer-head { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.adm-referrer-head strong { font-size: 12.5px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm-referrer-head span { font-size: 10.5px; color: var(--faint); }
+.adm-referrer-bar { height: 6px; background: var(--surf2); border-radius: 99px; overflow: hidden; min-width: 80px; }
+.adm-referrer-bar div { height: 100%; background: linear-gradient(90deg, var(--violet), var(--magenta)); border-radius: 99px; transition: width .4s ease; }
+.adm-referrer-pct { font-size: 11px; font-weight: 750; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ── Geographic distribution ───────────────────────────────── */
+.adm-countries { display: flex; flex-direction: column; gap: 9px; }
+.adm-country-row { display: grid; grid-template-columns: 24px 52px 1fr 64px; gap: 9px; align-items: center; }
+.adm-country-flag { font-size: 18px; text-align: center; }
+.adm-country-row strong { font-size: 12.5px; font-weight: 700; color: var(--ink); text-transform: uppercase; letter-spacing: .04em; }
+.adm-country-bar { height: 6px; background: var(--surf2); border-radius: 99px; overflow: hidden; }
+.adm-country-bar div { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--violet)); border-radius: 99px; transition: width .4s ease; }
+.adm-country-pct { font-size: 11px; font-weight: 700; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ── Growth pills in top-growing table ─────────────────────── */
+.adm-growth-pill {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 3px 9px; border-radius: 99px;
+  font-size: 11px; font-weight: 800; letter-spacing: .02em;
+}
+.adm-growth-up { background: rgba(163,230,53,.18); color: #bef264; border: 1px solid rgba(163,230,53,.35); }
+.adm-growth-down { background: rgba(251,113,133,.18); color: #fda4af; border: 1px solid rgba(251,113,133,.35); }
+.adm-growth-neutral { background: rgba(169,159,208,.12); color: var(--muted); border: 1px solid var(--line); }
+
+@media (max-width: 900px) {
+  .adm-insights-grid { grid-template-columns: 1fr; }
+  .adm-traffic-chart { height: 140px; }
+  .adm-country-row { grid-template-columns: 20px 44px 1fr 52px; }
+}
