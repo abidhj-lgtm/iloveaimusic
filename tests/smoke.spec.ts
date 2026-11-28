@@ -52,8 +52,8 @@ test("creator and moderator journey", async ({ page, context }) => {
   await page.getByRole("button", { name: /play track/i }).click();
   await expect(page.locator(".pbar")).toBeVisible();
 
-  await page.getByPlaceholder("Add a comment…").fill("Automated smoke comment.");
-  await page.getByPlaceholder("Add a comment…").press("Enter");
+  await page.getByPlaceholder("Write a comment…").fill("Automated smoke comment.");
+  await page.getByPlaceholder("Write a comment…").press("Enter");
   await expect(page.getByText("Automated smoke comment.")).toBeVisible();
 
   await page.getByRole("button", { name: /^like$/i }).click();

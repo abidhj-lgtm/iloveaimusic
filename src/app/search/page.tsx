@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search, X, Clock, TrendingUp, Filter } from "lucide-react";
@@ -117,8 +117,9 @@ function SearchInner() {
     setHistory(updated);
   };
 
-  const genres = availableTags.filter((t) => !["chill", "energetic", "melancholic", "upbeat"].includes(t));
-  const moods = availableTags.filter((t) => ["chill", "energetic", "melancholic", "upbeat"].includes(t));
+  const safeTags = Array.isArray(availableTags) ? availableTags : [];
+  const genres = safeTags.filter((t) => !["chill", "energetic", "melancholic", "upbeat"].includes(t));
+  const moods = safeTags.filter((t) => ["chill", "energetic", "melancholic", "upbeat"].includes(t));
 
   return (
     <div className="search-page">
@@ -219,9 +220,16 @@ function SearchInner() {
               {results.length} track{results.length === 1 ? "" : "s"} found
             </div>
             <div className="feed-grid">
-              {results.map((r) => (
-                <TrackCard key={r.track.id} track={r.track} />
-              ))}
+              {results
+                .filter((r) => r && r.track && r.track.id)
+                .map((r, i) => (
+                  <TrackCard 
+                    key={r.track.id} 
+                    track={r.track} 
+                    queue={[r.track.id]} 
+                    index={i} 
+                  />
+                ))}
             </div>
           </>
         )}
